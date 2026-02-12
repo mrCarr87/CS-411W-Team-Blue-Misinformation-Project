@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require("assert")
-const {query, extract_first} = require("../../src/scripts/extraction")
+const {query, extract_first} = require("../../scripts/extraction")
 
 test("extracts text from URL", async () => {
     let content = await extract_first("https://mrcarr87.github.io/CS-410---Team-Blue---Misinformation-Project/")
