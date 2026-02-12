@@ -4,4 +4,4 @@ function extract(url) {
     return null
 }
 
-export {extract}
+module.exports = {extract}
