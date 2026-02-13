@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Misinformation Detector • Analyze</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:," />
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            boxShadow: { soft: "0 10px 30px rgba(2, 6, 23, 0.08)" },
+          },
+        },
+      };
+    </script>
+  </head>
+
+<body class="bg-slate-50 text-slate-900 font-sans">    
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script crossorigin src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
