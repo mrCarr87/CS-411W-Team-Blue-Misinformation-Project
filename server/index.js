@@ -15,11 +15,8 @@ import { analyzeRoute } from "./scripts/credibility.js"
 const app = express()
 const port = 3000
 
-// Allow the frontend to call this API
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*")
-  next()
-})
+
+
 
 app.get("/", (req, res) => {
   res.send("Misinformation Detector API — running!")
@@ -27,9 +24,11 @@ app.get("/", (req, res) => {
 
 // Original extraction endpoint
 app.get("/extract", async (req, res) => {
-  const link = req.query.link
-  const article = await article_extract(link)
-  res.send(article)
+    const link = req.query.link
+    const article = await article_extract(link)
+    res.send(article)
+    
+    
 })
 
 // Credibility analysis endpoint

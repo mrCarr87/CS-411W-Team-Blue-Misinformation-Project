@@ -13,5 +13,6 @@ async function article_extract(url) {
         console.log(error)
     }
 
+    return null
 }
 export {article_extract}
