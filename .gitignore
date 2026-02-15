@@ -21,3 +21,5 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 .DS_Store
+# Ignore the tokens, dont send to github
+server/.env

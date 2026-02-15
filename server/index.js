@@ -1,23 +1,42 @@
+import { createRequire } from "module";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// Explicitly load .env from the server/ folder — works on all Node versions
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dotenv = require("dotenv");
+dotenv.config({ path: join(__dirname, ".env") });
+
 import express from "express"
-import {article_extract} from "./scripts/extraction.js"
+import { article_extract } from "./scripts/extraction.js"
+import { analyzeRoute } from "./scripts/credibility.js"
+
 const app = express()
 const port = 3000
 
-
-
+// Allow the frontend to call this API
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*")
+  next()
+})
 
 app.get("/", (req, res) => {
-    res.send("Hello World!")
+  res.send("Misinformation Detector API — running!")
 })
 
+// Original extraction endpoint
 app.get("/extract", async (req, res) => {
-    const link = req.query.link
-    const article = await article_extract(link)
-    res.send(article)
-    
-    
+  const link = req.query.link
+  const article = await article_extract(link)
+  res.send(article)
 })
+
+// Credibility analysis endpoint
+// Usage: GET http://localhost:3000/analyze?link=https://example.com/article
+app.get("/analyze", analyzeRoute)
 
 app.listen(port, () => {
-    console.log(`App listening at http://localhost:${port}`)
+  console.log(`Server running at http://localhost:${port}`)
+  console.log("Token loaded:", process.env.HF_TOKEN ? "YES ✓" : "NO ✗ — check your .env file")
 })
