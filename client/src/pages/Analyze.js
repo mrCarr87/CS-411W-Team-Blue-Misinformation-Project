@@ -118,7 +118,7 @@ export default function Analyze() {
           based on the publisher, publication date, and content.
         </p>
         <div className="space-y-4 mt-4">
-          <div className=${"flex rounded-xl border border-slate-200 bg-white shadow-sm " + theme.ring}>
+          <div className=${"2xl border border-slate-300 bg-white " + theme.ring}>
             <input
               value=${url}
               onInput=${e => setUrl(e.target.value)}
@@ -136,7 +136,7 @@ export default function Analyze() {
               type="button"
               onClick=${handleSubmit}
               disabled=${loading || !url.trim()}
-              className=${["inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-medium text-white transition",
+              className=${["inline-flex items-center justify-center 2xl px-5 py-3 text-sm font-medium text-white transition",
                 loading || !url.trim() ? "bg-sky-400 cursor-not-allowed" : theme.button].join(" ")}
             >
               ${loading
@@ -147,7 +147,7 @@ export default function Analyze() {
                 : "Submit"}
             </button>
             <button type="button" onClick=${handleClear}
-              className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
+              className="2xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200">
               Clear
             </button>
           </div>
