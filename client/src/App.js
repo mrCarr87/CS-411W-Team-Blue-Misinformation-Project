@@ -1,5 +1,6 @@
 import Navbar from "./components/Navbar.js";
 import Analyze from "./pages/Analyze.js";
+import Dashboard from "./pages/Dashboard.js";
 
 const html = window.htm.bind(window.React.createElement);
 

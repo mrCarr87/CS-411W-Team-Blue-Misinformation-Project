@@ -20,6 +20,15 @@ export default function Navbar() {
         <span className="hidden sm:inline-flex items-center border border-slate-300 bg-slate-50 px-3 py-1 text-xs text-slate-600">
           CS 411W Team Blue prototype
         </span>
+
+         <a
+            href="/pages/dashboard.js"
+            className="px-3 py-1 text-sm font-medium text-white rounded-md shadow-soft bg-gradient-to-br ${theme.accent} hover:opacity-90 transition"
+            >
+            Login
+            </a>
+            </div>
+
       </div>
     </header>
   `;
