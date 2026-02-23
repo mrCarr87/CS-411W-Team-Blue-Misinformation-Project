@@ -1,6 +1,7 @@
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import authRoutes from "./routes/auth.js";
 
 // Explicitly load .env from the server/ folder — works on all Node versions
 const require = createRequire(import.meta.url);
@@ -15,8 +16,9 @@ import { analyzeRoute } from "./scripts/credibility.js"
 const app = express()
 const port = 3000
 
-
-
+// Account Creation/Authentication
+app.use(express.json());
+app.use("/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.send("Misinformation Detector API — running!")
