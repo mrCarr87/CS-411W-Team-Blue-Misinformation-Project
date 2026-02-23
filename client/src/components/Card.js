@@ -2,7 +2,7 @@ const html = window.htm.bind(window.React.createElement);
 
 export default function Card({ title, subtitle, children }) {
   return html`
-    <section className="2xl border border-slate-300">
+    <section className="border border-slate-300">
       ${title || subtitle
         ? html`
             <div className="px-6 pt-6">
