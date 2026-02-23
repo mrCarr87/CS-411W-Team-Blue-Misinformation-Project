@@ -2,6 +2,7 @@ import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import authRoutes from "./routes/auth.js";
+import { registerDbApi } from "./routes/db_api.js";
 
 // Explicitly load .env from the server/ folder — works on all Node versions
 const require = createRequire(import.meta.url);
@@ -19,6 +20,9 @@ const port = 3000
 // Account Creation/Authentication
 app.use(express.json());
 app.use("/auth", authRoutes);
+
+// Auth Routes
+registerDbApi(app);
 
 app.get("/", (req, res) => {
   res.send("Misinformation Detector API — running!")
@@ -41,3 +45,4 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
   console.log("Token loaded:", process.env.HF_TOKEN ? "YES ✓" : "NO ✗ — check your .env file")
 })
+
