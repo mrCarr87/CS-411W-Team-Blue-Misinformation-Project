@@ -21,7 +21,8 @@ const TRUSTED_DOMAINS = new Set([
 const DISINFO_DOMAINS = new Set([
   "infowars.com","naturalcNews.com","breitbart.com","beforeitsnews.com",
   "worldnewsdailyreport.com","empirenews.net","theonion.com","clickhole.com",
-  "cnn-trending.com", 
+  "cnn-trending.com", "conservative101.com", "bizstandardnews.com","thebostontribune.com",
+  "BreakingNews365.net","BreakingNews247.net",
 ]);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
