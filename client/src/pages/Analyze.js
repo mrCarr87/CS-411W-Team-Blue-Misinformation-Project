@@ -158,7 +158,12 @@ export default function Analyze() {
     setResult(null);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:3000/analyze?link=${encodeURIComponent(url.trim())}`);
+      // Auto-detect: localhost for dev, Render for production
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+? 'http://localhost:3000' 
+: 'https://cs-411w-team-blue-misinformation-project.onrender.com';
+
+const res = await fetch(`${API_URL}/analyze?link=${encodeURIComponent(url.trim())}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? `Server error ${res.status}`);
