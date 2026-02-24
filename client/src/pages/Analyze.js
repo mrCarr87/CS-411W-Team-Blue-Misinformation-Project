@@ -36,6 +36,74 @@ function ScoreMeter({ score }) {
   `;
 }
 
+// ── Text analysis panel ───────────────────────────────────────────────────────
+function TextAnalysis({ analysis }) {
+  if (!analysis) return null;
+
+  return html`
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <h3 className="text-sm font-semibold text-slate-700">📊 Content Analysis</h3>
+      </div>
+      <div className="px-4 py-3 space-y-4">
+        
+        ${analysis.claimsVsOpinion && html`
+          <div>
+            <div className="text-xs text-slate-500 mb-1">Claims vs Opinion</div>
+            <div className="flex gap-2 h-6 rounded-full overflow-hidden bg-slate-100">
+              <div className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
+                   style=${{ width: analysis.claimsVsOpinion.claims + "%" }}>
+                ${analysis.claimsVsOpinion.claims > 15 ? analysis.claimsVsOpinion.claims + "% Facts" : ""}
+              </div>
+              <div className="bg-purple-500 flex items-center justify-center text-white text-xs font-medium"
+                   style=${{ width: analysis.claimsVsOpinion.opinion + "%" }}>
+                ${analysis.claimsVsOpinion.opinion > 15 ? analysis.claimsVsOpinion.opinion + "% Opinion" : ""}
+              </div>
+            </div>
+          </div>
+        `}
+
+        ${analysis.factVsSpeculation && html`
+          <div>
+            <span className="text-xs text-slate-500">Fact vs Speculation: </span>
+            <span className=${"text-xs font-medium " + 
+              (analysis.factVsSpeculation === "clear" ? "text-green-600" : 
+               analysis.factVsSpeculation === "mixed" ? "text-amber-600" : "text-red-600")}>
+              ${analysis.factVsSpeculation}
+            </span>
+          </div>
+        `}
+
+        ${analysis.sourceCitations && html`
+          <div>
+            <span className="text-xs text-slate-500">Source Citations: </span>
+            <span className=${"text-xs font-medium " + 
+              (analysis.sourceCitations === "strong" ? "text-green-600" : 
+               analysis.sourceCitations === "weak" ? "text-amber-600" : "text-red-600")}>
+              ${analysis.sourceCitations}
+            </span>
+          </div>
+        `}
+
+        ${analysis.exampleClaim && html`
+          <div className="pt-2 border-t border-slate-100">
+            <div className="text-xs text-slate-500 mb-1">Example Claim:</div>
+            <div className="text-sm text-slate-700 italic">"${analysis.exampleClaim}"</div>
+          </div>
+        `}
+
+        ${analysis.exampleOpinion && html`
+          <div className="pt-2 border-t border-slate-100">
+            <div className="text-xs text-slate-500 mb-1">Example Opinion:</div>
+            <div className="text-sm text-slate-700 italic">"${analysis.exampleOpinion}"</div>
+          </div>
+        `}
+
+      </div>
+    </div>
+  `;
+}
+
 // ── Reasons accordion ─────────────────────────────────────────────────────────
 function ReasonsAccordion({ reasons, metadata }) {
   const [open, setOpen] = useState(false);
@@ -118,7 +186,7 @@ export default function Analyze() {
           based on the publisher, publication date, and content.
         </p>
         <div className="space-y-4 mt-4">
-          <div className=${"2xl border border-slate-300 bg-white " + theme.ring}>
+          <div className=${"flex rounded-xl border border-slate-200 bg-white shadow-sm " + theme.ring}>
             <input
               value=${url}
               onInput=${e => setUrl(e.target.value)}
@@ -136,7 +204,7 @@ export default function Analyze() {
               type="button"
               onClick=${handleSubmit}
               disabled=${loading || !url.trim()}
-              className=${["inline-flex items-center justify-center 2xl px-5 py-3 text-sm font-medium text-white transition",
+              className=${["inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-medium text-white transition",
                 loading || !url.trim() ? "bg-sky-400 cursor-not-allowed" : theme.button].join(" ")}
             >
               ${loading
@@ -147,7 +215,7 @@ export default function Analyze() {
                 : "Submit"}
             </button>
             <button type="button" onClick=${handleClear}
-              className="2xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200">
+              className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
               Clear
             </button>
           </div>
@@ -203,6 +271,8 @@ export default function Analyze() {
                 </div>
               </div>
             `}
+
+            ${result.analysis && html`<${TextAnalysis} analysis=${result.analysis} />`}
 
             <${ReasonsAccordion} reasons=${result.reasons} metadata=${result.metadata} />
           </div>
