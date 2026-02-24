@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import authRoutes from "./routes/auth.js";
 import { registerDbApi } from "./routes/db_api.js";
+import submissionRoutes from "./routes/submissions.js";
 
 // Explicitly load .env from the server/ folder — works on all Node versions
 const require = createRequire(import.meta.url);
@@ -17,12 +18,10 @@ import { analyzeRoute } from "./scripts/credibility.js"
 const app = express()
 const port = 3000
 
-// Account Creation/Authentication
 app.use(express.json());
-app.use("/auth", authRoutes);
-
-// Auth Routes
-registerDbApi(app);
+app.use("/auth", authRoutes); // Account Creation/Authentication
+app.use("/api", submissionRoutes); // Store all sumissions into db
+registerDbApi(app); // DB Routes
 
 app.get("/", (req, res) => {
   res.send("Misinformation Detector API — running!")
