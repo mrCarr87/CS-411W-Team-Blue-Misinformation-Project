@@ -16,6 +16,11 @@ import { article_extract } from "./scripts/extraction.js"
 import { analyzeRoute } from "./scripts/credibility.js"
 
 const app = express()
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*")
+  next()
+})
 const port = 3000
 
 app.use(express.json());
