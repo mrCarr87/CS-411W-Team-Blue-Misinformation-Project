@@ -30,7 +30,7 @@ export default function SavedArticleCard({ item, onOpen, onRemove }) {
             </h3>
           </div>
 
-          <div className=${"shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium " + badge}>
+          <div className=${"shrink-0 inline-flex items-center border px-2.5 py-1 text-xs font-medium " + badge}>
             ${item.score ?? 0}/100
           </div>
         </div>

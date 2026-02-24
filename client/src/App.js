@@ -15,8 +15,8 @@ export default function App() {
         ${
           page === "analyze"
             ? html`<${Analyze} />`
-            : html`<${Dashboard} />`
-        }
+            : html`<${Dashboard} setPage=${setPage} />`
+          }       
       </main>
     </div>
   `;

@@ -38,7 +38,7 @@ export default function Navbar({ setPage }) {
           <button
             type="button"
             onClick=${() => setPage("dashboard")}
-            className=${"px-3 py-1 text-sm font-medium text-white rounded-md shadow-soft bg-gradient-to-br " + theme.accent + " hover:opacity-90 transition"}
+            className=${"px-3 py-1 text-sm font-medium text-white shadow-soft bg-gradient-to-br " + theme.accent + " hover:opacity-90 transition"}
           >
             Login
           </button>
