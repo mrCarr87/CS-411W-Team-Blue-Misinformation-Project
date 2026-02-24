@@ -8,6 +8,12 @@ export default function Dashboard() {
       <h1 className="text-3xl font-bold text-slate-900">
         User Dashboard
       </h1>
+      <h1 className="text-right text-3x1 font-bold text-slate-750">
+        Welcome [UserName]!
+      </h1>
+      <h2 className"text-right text-lg font-medium text-slate-700">
+      Here are your previous analyses and their results! Review them and read back over your previous submissions or you can analyze new ones!
+      </h2>
 
       <${Card} title="Demo Page">
         <p className="text-slate-600">
