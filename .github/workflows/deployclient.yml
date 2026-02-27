@@ -1,4 +1,4 @@
-name: Deploy /client (static) to GitHub Pages
+name: Deploy client to GitHub Pages
 
 on:
   push:
