@@ -139,4 +139,81 @@ router.get("/history", authMiddleware, async (req, res) => {
   }
 });
 
+// Save Endpoint
+router.post("/save/:submissionId", authMiddleware, async (req, res) => {
+  const { submissionId } = req.params;
+
+  try {
+    // Ensure submission belongs to user
+    const [check] = await pool.query(
+      `SELECT id FROM submissions WHERE id = ? AND user_id = ?`,
+      [submissionId, req.user.id]
+    );
+
+    if (check.length === 0) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    await pool.query(
+      `INSERT INTO saved_articles (user_id, submission_id)
+       VALUES (?, ?)`,
+      [req.user.id, submissionId]
+    );
+
+    res.json({ message: "Article saved" });
+
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "Already saved" });
+    }
+    res.status(500).json({ error: "Failed to save article" });
+  }
+});
+
+// Unsave submission
+router.delete("/save/:submissionId", authMiddleware, async (req, res) => {
+  const { submissionId } = req.params;
+
+  try {
+    await pool.query(
+      `DELETE FROM saved_articles
+       WHERE user_id = ? AND submission_id = ?`,
+      [req.user.id, submissionId]
+    );
+
+    res.json({ message: "Article unsaved" });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to unsave article" });
+  }
+});
+
+// Get saved
+router.get("/saved", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT s.id AS submission_id,
+             s.original_url,
+             s.date_submitted,
+             cs.overall_score,
+             cs.verdict
+      FROM saved_articles sa
+      JOIN submissions s ON sa.submission_id = s.id
+      LEFT JOIN articles a ON a.submission_id = s.id
+      LEFT JOIN credibility_scores cs ON cs.article_id = a.id
+      WHERE sa.user_id = ?
+      ORDER BY sa.saved_at DESC
+      `,
+      [req.user.id]
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch saved articles" });
+  }
+});
+
+
 export default router;
