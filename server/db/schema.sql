@@ -9,18 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_email (email)
 ) ENGINE=InnoDB;
 
--- SAVED ARTICLES
-CREATE TABLE IF NOT EXISTS saved_articles (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id INT UNSIGNED NOT NULL,
-  submission_id INT UNSIGNED NOT NULL,
-  saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_user_submission (user_id, submission_id),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
 -- SOURCES
 CREATE TABLE IF NOT EXISTS sources (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -43,6 +31,18 @@ CREATE TABLE IF NOT EXISTS submissions (
   CONSTRAINT fk_submissions_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- SAVED ARTICLES
+CREATE TABLE IF NOT EXISTS saved_articles (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id INT UNSIGNED NOT NULL,
+  submission_id INT UNSIGNED NOT NULL,
+  saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_user_submission (user_id, submission_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ARTICLES
