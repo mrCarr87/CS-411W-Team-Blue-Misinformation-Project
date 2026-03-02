@@ -4,6 +4,7 @@ import { dirname, join } from "path";
 import authRoutes from "./routes/auth.js";
 import { registerDbApi } from "./routes/db_api.js";
 import submissionRoutes from "./routes/submissions.js";
+import cors from "cors"
 
 // Explicitly load .env from the server/ folder — works on all Node versions
 const require = createRequire(import.meta.url);
@@ -16,15 +17,24 @@ import { article_extract } from "./scripts/extraction.js"
 import { analyzeRoute } from "./scripts/credibility.js"
 
 const app = express()
-
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*")
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next()
-})
 const port = process.env.PORT || 3000
+
+// app.use((req, res, next) => {
+//   res.header("Access-Control-Allow-Origin", "*")
+//   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+//   if (req.method === "OPTIONS") return res.sendStatus(204);
+//   next()
+// })
+
+app.use(cors({
+  origin: "*", // or specify your frontend URL instead of *
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+app.options("*", cors()); // explicitly handle preflight
+
 
 app.use(express.json());
 app.use("/auth", authRoutes); // Account Creation/Authentication
