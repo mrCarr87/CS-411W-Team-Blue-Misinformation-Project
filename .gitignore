@@ -22,4 +22,6 @@ gradle-app.setting
 .classpath
 .DS_Store
 
+**/.env
+
 .env
