@@ -23,3 +23,4 @@ gradle-app.setting
 .DS_Store
 # Ignore the tokens, dont send to github
 server/.env
+.env
