@@ -215,5 +215,36 @@ router.get("/saved", authMiddleware, async (req, res) => {
   }
 });
 
+// Return user profile
+
+router.get("/me", authMiddleware, async(req, res) => {
+
+  try {
+      
+      const [rows] = await pool.query(
+        `
+        SELECT  id AS user_id,
+                email,
+                role,
+                created_at
+        FROM users
+        WHERE id = ?
+        
+        `,
+        [req.user.id]
+      );
+
+
+      if (rows.length === 0) { // Where there no users found?
+        return res.status(404).json({ message: "User not found" })
+      }
+      
+      res.json(rows[0]) // No issues, return the user
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user" })
+  }
+  
+})
+
 
 export default router;
