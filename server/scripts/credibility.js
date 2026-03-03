@@ -17,6 +17,9 @@ const DISINFO_DOMAINS = new Set(DISINFO_SET);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
+const HF_TOKEN = process.env.HF_TOKEN;
+console.log("credibility.js loaded token: " + HF_TOKEN)
+
 function extractDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); }
   catch { return String(url).toLowerCase(); }
@@ -344,7 +347,7 @@ function calculateScore(findings, aiDetection) {
 // ── core function ─────────────────────────────────────────────────────────────
 
 export async function analyzeCredibility(url) {
-  const HF_TOKEN = process.env.HF_TOKEN;
+  
   if (!url) throw new Error("No URL provided");
 
   // 1. Extract article content — try article-extractor first, then ScraperAPI, then fallback
