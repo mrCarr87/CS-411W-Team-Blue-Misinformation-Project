@@ -14,7 +14,6 @@ export default function App() {
   const [user, setUser] = window.React.useState(null);
   const [booting, setBooting] = window.React.useState(true);
 
-  // Restore session on first load
   window.React.useEffect(() => {
     (async () => {
       try {
