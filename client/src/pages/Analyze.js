@@ -47,6 +47,29 @@ function TextAnalysis({ analysis }) {
       </div>
       <div className="px-4 py-3 space-y-4">
         
+        ${analysis.aiGenerated && html`
+          <div className="pb-3 border-b border-slate-200">
+            <div className="text-xs text-slate-500 mb-2">🤖 AI-Generated Content Detection</div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="h-6 rounded-full overflow-hidden bg-slate-100">
+                  <div 
+                    className=${analysis.aiGenerated.probability >= 80 ? "bg-red-500" : 
+                               analysis.aiGenerated.probability >= 65 ? "bg-orange-500" : "bg-amber-500"}
+                    style=${{ width: analysis.aiGenerated.probability + "%" }}
+                  />
+                </div>
+              </div>
+              <div className="text-sm font-semibold" style=${{ minWidth: '60px' }}>
+                ${analysis.aiGenerated.probability}% AI
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Confidence: ${analysis.aiGenerated.confidence} (${analysis.aiGenerated.samplesAnalyzed} samples)
+            </div>
+          </div>
+        `}
+        
         ${analysis.claimsVsOpinion && html`
           <div>
             <div className="text-xs text-slate-500 mb-1">Claims vs Opinion</div>
@@ -159,11 +182,11 @@ export default function Analyze() {
     setError(null);
     try {
       // Auto-detect: localhost for dev, Render for production
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-? 'http://localhost:3000' 
-: 'https://cs-411w-team-blue-misinformation-project.onrender.com';
+      const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3000' 
+        : 'https://cs-411w-team-blue-misinformation-project.onrender.com';
 
-const res = await fetch(`${API_URL}/analyze?link=${encodeURIComponent(url.trim())}`);
+      const res = await fetch(`${API_URL}/analyze?link=${encodeURIComponent(url.trim())}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? `Server error ${res.status}`);
@@ -264,6 +287,18 @@ const res = await fetch(`${API_URL}/analyze?link=${encodeURIComponent(url.trim()
             `}
 
             <${ScoreMeter} score=${result.score} />
+
+            ${result.aiWarning && html`
+              <div className="flex items-start gap-3 rounded-xl border-2 border-purple-300 bg-purple-50 px-4 py-3">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-purple-800">🤖 AI-Generated Content Detected</p>
+                  <p className="text-xs text-purple-700 mt-0.5">${result.aiWarning}</p>
+                </div>
+              </div>
+            `}
 
             ${result.biasWarning && html`
               <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
