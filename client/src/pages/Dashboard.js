@@ -96,7 +96,7 @@ export default function Dashboard({ setPage, user }) {
                 Welcome <span className="text-slate-700">${user?.email || "User"}</span>
               </h1>
               <p className="mt-2 text-sm text-slate-600 max-w-xl">
-                Here are your saved analyses pulled from the database.
+                Here are your saved analyses.
               </p>
             </div>
           </div>
