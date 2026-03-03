@@ -6,7 +6,7 @@ export const TRUSTED_SET = [
   "time.com","newsweek.com","vice.com","theatlantic.com","newyorker.com",
   "economist.com","ft.com","latimes.com","chicagotribune.com","nypost.com",
   "scientificamerican.com","nature.com","science.org","nih.gov","cdc.gov",
-  "who.int","nasa.gov"
+  "who.int","nasa.gov","mayoclinic.org","medlineplus.gov"
 ].map(d => d.toLowerCase());
 
 export const DISINFO_SET = [
