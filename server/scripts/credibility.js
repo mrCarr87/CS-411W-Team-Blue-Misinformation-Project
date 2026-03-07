@@ -419,7 +419,7 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Hugging Face API error ${response.status}: ${errText.error}`);
+    throw new Error(`Hugging Face API error ${response.status}: ${errText.error} ${HF_TOKEN}`);
   }
 
   const hfData  = await response.json();
