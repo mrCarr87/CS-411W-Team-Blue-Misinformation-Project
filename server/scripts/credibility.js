@@ -19,7 +19,6 @@ const DISINFO_DOMAINS = new Set(DISINFO_SET);
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const HF_TOKEN = process.env.HF_TOKEN;
-console.log("credibility.js loaded token: " + HF_TOKEN)
 
 function extractDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); }
@@ -348,7 +347,6 @@ function calculateScore(findings, aiDetection) {
 // ── core function ─────────────────────────────────────────────────────────────
 
 export async function analyzeCredibility(url) {
-  console.log("analyzeCredibility called!")
   if (!url) throw new Error("No URL provided");
 
   // 1. Extract article content — try article-extractor first, then ScraperAPI, then fallback
@@ -402,12 +400,6 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
 
   // 3. Call Hugging Face — judgment calls + text analysis
 
-  console.log({
-    hasToken: !!process.env.HF_TOKEN,
-    tokenPrefix: process.env.HF_TOKEN?.slice(0, 4), // should look like "hf_"
-    tokenLength: process.env.HF_TOKEN?.length,
-  });
-
   const response = await fetch(HF_URL, {
     method: "POST",
     headers: {
@@ -427,7 +419,7 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Hugging Face API erasdasdror ${response.status}: ${errText.error} ${HF_TOKEN}`);
+    throw new Error(`Hugging Face API error ${response.status}: ${errText.error}`);
   }
 
   const hfData  = await response.json();
