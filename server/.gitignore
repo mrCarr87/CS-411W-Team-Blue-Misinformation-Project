@@ -23,3 +23,5 @@ gradle-app.setting
 .DS_Store
 
 .env
+
+scripts/testCall.js

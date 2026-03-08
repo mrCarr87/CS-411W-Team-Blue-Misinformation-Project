@@ -1,4 +1,5 @@
 // ─── server/scripts/credibility.js ──────────────────────────────────────────
+import "dotenv/config";
 import { extract } from "@extractus/article-extractor";
 import striptags from "striptags";
 import fetch from "node-fetch";
