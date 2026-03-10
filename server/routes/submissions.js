@@ -10,7 +10,7 @@ const router = express.Router();
   - Stores submission tied to user
   - Extracts article
   - Resolves source_id from domain
-  - Runs real credibility analysis
+  - Runs credibility analysis
   - Stores score in DB
 */
 router.post("/submit", authMiddleware, async (req, res) => {
@@ -88,7 +88,7 @@ router.post("/submit", authMiddleware, async (req, res) => {
       [
         articleId,
         fullResult.score,
-        100, // you can refine later
+        100,
         fullResult.score >= 75 ? "High Credibility"
           : fullResult.score >= 50 ? "Moderate Credibility"
           : "Low Credibility",
@@ -99,7 +99,7 @@ router.post("/submit", authMiddleware, async (req, res) => {
     await conn.commit();
 
     // Return same structure as /analyze
-    res.json(fullResult);
+    res.json(...fullResult, submissionId);
 
   } catch (err) {
     await conn.rollback();

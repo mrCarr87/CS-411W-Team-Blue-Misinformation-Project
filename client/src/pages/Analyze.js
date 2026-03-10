@@ -1,5 +1,6 @@
 import Card from "../components/Card.js";
 import { theme } from "../ui/theme.js";
+import { apiFetch } from "../ui/api.js";
 
 const { useState, useCallback } = window.React;
 const html = window.htm.bind(window.React.createElement);
@@ -12,7 +13,6 @@ function scoreColor(score) {
   return               { text: "text-red-600",    bar: "bg-red-500",    badge: "bg-red-50 text-red-700 border-red-200",       label: "Very Low Credibility" };
 }
 
-// ── Score meter ───────────────────────────────────────────────────────────────
 function ScoreMeter({ score }) {
   const c = scoreColor(score);
   return html`
@@ -36,7 +36,6 @@ function ScoreMeter({ score }) {
   `;
 }
 
-// ── Text analysis panel ───────────────────────────────────────────────────────
 function TextAnalysis({ analysis }) {
   if (!analysis) return null;
 
@@ -46,21 +45,20 @@ function TextAnalysis({ analysis }) {
         <h3 className="text-sm font-semibold text-slate-700">📊 Content Analysis</h3>
       </div>
       <div className="px-4 py-3 space-y-4">
-        
         ${analysis.aiGenerated && html`
           <div className="pb-3 border-b border-slate-200">
             <div className="text-xs text-slate-500 mb-2">🤖 AI-Generated Content Detection</div>
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <div className="h-6 rounded-full overflow-hidden bg-slate-100">
-                  <div 
-                    className=${analysis.aiGenerated.probability >= 80 ? "bg-red-500" : 
-                               analysis.aiGenerated.probability >= 65 ? "bg-orange-500" : "bg-amber-500"}
+                  <div
+                    className=${analysis.aiGenerated.probability >= 80 ? "bg-red-500" :
+                      analysis.aiGenerated.probability >= 65 ? "bg-orange-500" : "bg-amber-500"}
                     style=${{ width: analysis.aiGenerated.probability + "%" }}
                   />
                 </div>
               </div>
-              <div className="text-sm font-semibold" style=${{ minWidth: '60px' }}>
+              <div className="text-sm font-semibold" style=${{ minWidth: "60px" }}>
                 ${analysis.aiGenerated.probability}% AI
               </div>
             </div>
@@ -69,7 +67,7 @@ function TextAnalysis({ analysis }) {
             </div>
           </div>
         `}
-        
+
         ${analysis.claimsVsOpinion && html`
           <div>
             <div className="text-xs text-slate-500 mb-1">Claims vs Opinion</div>
@@ -89,8 +87,8 @@ function TextAnalysis({ analysis }) {
         ${analysis.factVsSpeculation && html`
           <div>
             <span className="text-xs text-slate-500">Fact vs Speculation: </span>
-            <span className=${"text-xs font-medium " + 
-              (analysis.factVsSpeculation === "clear" ? "text-green-600" : 
+            <span className=${"text-xs font-medium " +
+              (analysis.factVsSpeculation === "clear" ? "text-green-600" :
                analysis.factVsSpeculation === "mixed" ? "text-amber-600" : "text-red-600")}>
               ${analysis.factVsSpeculation}
             </span>
@@ -100,8 +98,8 @@ function TextAnalysis({ analysis }) {
         ${analysis.sourceCitations && html`
           <div>
             <span className="text-xs text-slate-500">Source Citations: </span>
-            <span className=${"text-xs font-medium " + 
-              (analysis.sourceCitations === "strong" ? "text-green-600" : 
+            <span className=${"text-xs font-medium " +
+              (analysis.sourceCitations === "strong" ? "text-green-600" :
                analysis.sourceCitations === "weak" ? "text-amber-600" : "text-red-600")}>
               ${analysis.sourceCitations}
             </span>
@@ -121,20 +119,19 @@ function TextAnalysis({ analysis }) {
             <div className="text-sm text-slate-700 italic">"${analysis.exampleOpinion}"</div>
           </div>
         `}
-
       </div>
     </div>
   `;
 }
 
-// ── Reasons accordion ─────────────────────────────────────────────────────────
 function ReasonsAccordion({ reasons, metadata }) {
   const [open, setOpen] = useState(false);
+
   return html`
     <div className="rounded-xl border border-slate-200 overflow-hidden">
       <button
         type="button"
-        onClick=${() => setOpen(o => !o)}
+        onClick=${() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left"
       >
         <span className="text-sm font-medium text-slate-700">Why this score?</span>
@@ -148,7 +145,7 @@ function ReasonsAccordion({ reasons, metadata }) {
         <div className="px-4 pt-3 pb-4 space-y-2 bg-white border-t border-slate-100">
           ${(metadata?.domain || metadata?.published) && html`
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3 pb-3 border-b border-slate-100">
-              ${metadata.domain    && html`<span><span className="font-medium text-slate-700">Source:</span> ${metadata.domain}</span>`}
+              ${metadata.domain && html`<span><span className="font-medium text-slate-700">Source:</span> ${metadata.domain}</span>`}
               ${metadata.published && html`<span><span className="font-medium text-slate-700">Published:</span> ${metadata.published}</span>`}
             </div>
           `}
@@ -168,30 +165,32 @@ function ReasonsAccordion({ reasons, metadata }) {
   `;
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function Analyze() {
-  const [url, setUrl]         = useState("");
+  const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult]   = useState(null);
-  const [error, setError]     = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [saveMessage, setSaveMessage] = useState(null);
 
   const handleSubmit = useCallback(async () => {
     if (!url.trim()) return;
+
     setLoading(true);
     setResult(null);
     setError(null);
-    try {
-      // Auto-detect: localhost for dev, Render for production
-      const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3000' 
-        : 'https://cs-411w-team-blue-misinformation-project-production.up.railway.app';
+    setSaveMessage(null);
 
-      const res = await fetch(`${API_URL}/analyze?link=${encodeURIComponent(url.trim())}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `Server error ${res.status}`);
-      }
-      setResult(await res.json());
+    try {
+      const data = await apiFetch("/api/submit", {
+        method: "POST",
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      setResult({
+        ...data,
+        saved: false,
+      });
     } catch (err) {
       setError(err.message ?? "Something went wrong.");
     } finally {
@@ -199,8 +198,31 @@ export default function Analyze() {
     }
   }, [url]);
 
+  const handleSave = useCallback(async () => {
+    if (!result?.submissionId) return;
+
+    setSaving(true);
+    setSaveMessage(null);
+
+    try {
+      await apiFetch(`/api/save/${result.submissionId}`, {
+        method: "POST",
+      });
+
+      setResult((prev) => prev ? { ...prev, saved: true } : prev);
+      setSaveMessage("Article saved to your dashboard.");
+    } catch (err) {
+      setSaveMessage(err.message || "Failed to save article.");
+    } finally {
+      setSaving(false);
+    }
+  }, [result]);
+
   const handleClear = useCallback(() => {
-    setUrl(""); setResult(null); setError(null);
+    setUrl("");
+    setResult(null);
+    setError(null);
+    setSaveMessage(null);
   }, []);
 
   return html`
@@ -213,12 +235,13 @@ export default function Analyze() {
           Paste an article URL below. AI will evaluate the source's credibility
           based on the publisher, publication date, and content.
         </p>
+
         <div className="space-y-4 mt-4">
           <div className=${"flex rounded-xl border border-slate-200 bg-white shadow-sm " + theme.ring}>
             <input
               value=${url}
-              onInput=${e => setUrl(e.target.value)}
-              onKeyDown=${e => e.key === "Enter" && handleSubmit()}
+              onInput=${(e) => setUrl(e.target.value)}
+              onKeyDown=${(e) => e.key === "Enter" && handleSubmit()}
               placeholder="https://example.com/article"
               className="w-full bg-transparent px-3 py-3 text-sm text-slate-900 outline-none"
               spellCheck="false"
@@ -227,13 +250,16 @@ export default function Analyze() {
               inputMode="url"
             />
           </div>
+
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick=${handleSubmit}
               disabled=${loading || !url.trim()}
-              className=${["inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-medium text-white transition",
-                loading || !url.trim() ? "bg-sky-400 cursor-not-allowed" : theme.button].join(" ")}
+              className=${[
+                "inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-medium text-white transition",
+                loading || !url.trim() ? "bg-sky-400 cursor-not-allowed" : theme.button
+              ].join(" ")}
             >
               ${loading
                 ? html`<svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -242,18 +268,47 @@ export default function Analyze() {
                   </svg>Analyzing…`
                 : "Submit"}
             </button>
-            <button type="button" onClick=${handleClear}
-              className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
+
+            <button
+              type="button"
+              onClick=${handleClear}
+              className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
               Clear
             </button>
+
+            ${result?.submissionId && html`
+              <button
+                type="button"
+                onClick=${handleSave}
+                disabled=${saving || result.saved}
+                className=${[
+                  "rounded-xl px-4 py-3 text-sm font-medium transition",
+                  result.saved
+                    ? "bg-emerald-100 text-emerald-700 cursor-default"
+                    : saving
+                      ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      : "bg-slate-900 hover:bg-slate-800 text-white"
+                ].join(" ")}
+              >
+                ${result.saved ? "Saved" : saving ? "Saving..." : "Save"}
+              </button>
+            `}
           </div>
+
+          ${saveMessage && html`
+            <div className="text-sm text-slate-600">${saveMessage}</div>
+          `}
         </div>
       <//>
 
       <${Card} title=${result ? "Credibility Analysis" : "Results"}>
         ${!result && !error && !loading && html`
-          <div className="text-sm text-slate-500">Submit a link above to see an AI credibility analysis here.</div>
+          <div className="text-sm text-slate-500">
+            Submit a link above to see an AI credibility analysis here.
+          </div>
         `}
+
         ${loading && html`
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <svg className="h-4 w-4 animate-spin text-sky-500" viewBox="0 0 24 24" fill="none">
@@ -263,14 +318,15 @@ export default function Analyze() {
             Fetching and analyzing source…
           </div>
         `}
+
         ${error && html`
           <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             <span className="font-medium">Error:</span> ${error}
           </div>
         `}
+
         ${result && html`
           <div className="space-y-5">
-
             ${result.contentBlocked && html`
               <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-5 py-4">
                 <div className="flex items-center gap-2 mb-1">
@@ -313,7 +369,6 @@ export default function Analyze() {
             `}
 
             ${result.analysis && html`<${TextAnalysis} analysis=${result.analysis} />`}
-
             <${ReasonsAccordion} reasons=${result.reasons} metadata=${result.metadata} />
           </div>
         `}
