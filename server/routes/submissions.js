@@ -99,7 +99,7 @@ router.post("/submit", authMiddleware, async (req, res) => {
     await conn.commit();
 
     // Return same structure as /analyze
-    res.json(...fullResult, submissionId);
+    res.json({...fullResult, submissionId});
 
   } catch (err) {
     await conn.rollback();
