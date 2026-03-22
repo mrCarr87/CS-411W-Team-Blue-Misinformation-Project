@@ -228,10 +228,10 @@ export default function Analyze() {
   return html`
     <div className="space-y-7">
       <${Card}>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           Analyze a link
         </h1>
-        <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
           Paste an article URL below. AI will evaluate the source's credibility
           based on the publisher, publication date, and content.
         </p>

@@ -66,7 +66,7 @@ export default function Register({ setPage }) {
   const actions = html`
     <button
       type="button"
-      className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+      className="rounded-xl px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
       onClick=${() => setPage && setPage("login")}
     >
       Already have an account?
@@ -80,10 +80,10 @@ export default function Register({ setPage }) {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-5">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 Register
               </h1>
-              <p className="mt-2 text-sm text-slate-600 max-w-xl">
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                 Create an account to save and revisit your credibility analyses.
               </p>
             </div>
