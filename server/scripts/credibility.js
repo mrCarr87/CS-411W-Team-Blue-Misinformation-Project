@@ -172,8 +172,9 @@ function buildPrompt({ domain, published, contentSnippet, contentAvailable, trus
 SOURCE:
   Domain    : ${domain}
   Published : ${published ?? "unknown"}
-  Trusted   : ${trusted ? "YES — well-known outlet, do not question reputation" : "NO"}
-  Disinfo   : ${disinfo ? "YES — known misinformation or satire site" : "NO"}
+  Trusted   : ${trusted ? "YES — established outlet with generally reliable reporting" : "NO"}
+  Disinfo: ${disinfo ? "YES — known misinformation or satire site" : "NO"}
+
 
 ${contentSection}
 
@@ -188,14 +189,19 @@ Answer each field:
   * "sensational"= fear-mongering, emotionally manipulative framing
   * "conspiracy" = unverified claims, speculation as fact
   * ONLY use "blocked" if content was NOT retrieved
+  * Evaluate the CONTENT ITSELF independently of the domain reputation.
+  A trusted outlet can still publish biased or opinion content. Be honest about what 
+  you see in the text — if it has a clear political lean, mark it "biased" even if 
+  the source is well-known.
 - "biasDirection": one of "left", "right", "none" (only fill if contentQuality is "biased")
 - "domainReason": one sentence describing domain reputation
 - "contentReason": one sentence about content quality (if blocked, say "Article content could not be retrieved")
 
 ${contentAvailable ? `
 TEXT ANALYSIS (only if content WAS retrieved):
-- "claimsVsOpinion": Percentage estimate — what % is factual claims vs opinion? Return as {"claims": 70, "opinion": 30}
-- "factVsSpeculation": Does article distinguish facts from speculation? "clear", "mixed", or "poor"
+- "claimsVsOpinion": Percentage estimate — what % is verifiable factual claims vs opinion/commentary? 
+  Pure news reporting should be 80-90% claims. Only mark as opinion if the author is clearly 
+  expressing personal views, not just reporting facts. Return as {"claims": 70, "opinion": 30}- "factVsSpeculation": Does article distinguish facts from speculation? "clear", "mixed", or "poor"
 - "sourceCitations": Does article cite sources? "strong" (multiple named), "weak" (vague/anonymous), or "none"
 - "exampleClaim": Extract ONE specific factual claim (one sentence)
 - "exampleOpinion": Extract ONE opinion statement if present (one sentence, or "none" if purely factual)
@@ -222,9 +228,9 @@ Respond with ONLY this JSON:
 function calculateScore(findings, aiDetection) {
   let score = 100;
   const reasons = [];
-  const analysis = {}; // extra details for UI
+  const analysis = {};
 
-  // Domain
+  // ── Domain ────────────────────────────────────────────────────────────────
   switch (findings.domainTier) {
     case "trusted":
       reasons.push(findings.domainReason);
@@ -243,7 +249,7 @@ function calculateScore(findings, aiDetection) {
       break;
   }
 
-  // Date
+  // ── Date ──────────────────────────────────────────────────────────────────
   if (!findings.hasDate) {
     score -= 8;
     reasons.push("Minor flag: No publication date was found on this article.");
@@ -254,46 +260,47 @@ function calculateScore(findings, aiDetection) {
     reasons.push("Publication date is present and recent.");
   }
 
-  // AI-Generated Content Detection
+  // ── AI-Generated Detection ────────────────────────────────────────────────
   let aiWarning = null;
   if (aiDetection && aiDetection.probability >= 50) {
     if (aiDetection.probability >= 80) {
       score -= 25;
       reasons.push(`Serious flag: Content appears to be AI-generated (${aiDetection.probability}% probability).`);
-      aiWarning = `This article is highly likely (${aiDetection.probability}%) to be AI-generated. AI-generated content can spread misinformation at scale and lacks human editorial oversight. Verify claims independently.`;
+      aiWarning = `This article is highly likely (${aiDetection.probability}%) to be AI-generated. Verify claims independently.`;
     } else if (aiDetection.probability >= 65) {
       score -= 15;
       reasons.push(`Moderate flag: Content may be partially AI-generated (${aiDetection.probability}% probability).`);
-      aiWarning = `This article shows signs of AI-generated content (${aiDetection.probability}% probability). Some sections may lack human verification. Cross-check important claims.`;
+      aiWarning = `This article shows signs of AI-generated content (${aiDetection.probability}% probability). Cross-check important claims.`;
     } else {
       score -= 8;
       reasons.push(`Minor flag: Some AI-generated patterns detected (${aiDetection.probability}% probability).`);
     }
   }
 
-  // Content quality
+  // ── Content Quality ───────────────────────────────────────────────────────
   let biasWarning = null;
   switch (findings.contentQuality) {
     case "factual":
       reasons.push("Content appears factual and neutral with no misleading signals.");
       break;
-    case "biased":
-      score -= 12;
+    case "biased": {
+      score -= 20;
       const direction = findings.biasDirection !== "none" ? ` (${findings.biasDirection}-leaning)` : "";
       reasons.push(`Moderate flag: ${findings.contentReason}`);
-      biasWarning = `This article shows signs of political bias${direction}. The credibility score reflects the source's reputation, but the content may present a one-sided perspective. Consider cross-referencing with other sources.`;
+      biasWarning = `This article shows signs of political bias${direction}. Consider cross-referencing with other sources.`;
       break;
+    }
     case "opinion":
-      score -= 22;
+      score -= 25;
       reasons.push(`Moderate flag: ${findings.contentReason}`);
-      biasWarning = "This appears to be an opinion or editorial piece, not straight news reporting. The views expressed reflect the author's perspective.";
+      biasWarning = "This is an opinion or editorial piece. The views expressed reflect the author's perspective.";
       break;
     case "sensational":
-      score -= 20;
+      score -= 25;
       reasons.push(`Moderate flag: ${findings.contentReason}`);
       break;
     case "conspiracy":
-      score -= 30;
+      score -= 35;
       reasons.push(`Serious flag: ${findings.contentReason}`);
       break;
     case "blocked":
@@ -302,43 +309,55 @@ function calculateScore(findings, aiDetection) {
       break;
   }
 
-  if (!aiWarning && findings.contentReason) {
-    const aiKeywords = ['ai-written', 'ai-generated', 'written by ai', 'generated by ai', 'artificial intelligence wrote', 'chatgpt'];
-    const mentionsAI = aiKeywords.some(keyword => 
-      findings.contentReason.toLowerCase().includes(keyword)
-    );
-    
-    if (mentionsAI) {
-      score -= 20; // Additional penalty if content analysis detected AI
-      aiWarning = "The content analysis detected this article was written by AI. AI-generated articles may lack human editorial oversight and verification.";
-      reasons.push("Serious flag: Article appears to be AI-generated based on content analysis.");
+  // ── claimsVsOpinion penalty ───────────────────────────────────────────────
+  if (findings.claimsVsOpinion) {
+    analysis.claimsVsOpinion = findings.claimsVsOpinion;
+    const opinionPct = findings.claimsVsOpinion.opinion ?? 0;
+    if (opinionPct >= 50) {
+      score -= 10;
+      reasons.push(`Moderate flag: ${opinionPct}% of content is opinion or editorial framing.`);
+    } else if (opinionPct >= 25) {
+      score -= 5;
+      reasons.push(`Minor flag: ${opinionPct}% of content contains opinion or editorial framing.`);
     }
   }
 
-  // Text analysis (if available)
-  if (findings.claimsVsOpinion) {
-    analysis.claimsVsOpinion = findings.claimsVsOpinion;
-  }
+  // ── factVsSpeculation penalty ─────────────────────────────────────────────
   if (findings.factVsSpeculation) {
     analysis.factVsSpeculation = findings.factVsSpeculation;
+    if (findings.factVsSpeculation === "poor") {
+      score -= 10;
+      reasons.push("Moderate flag: Article poorly distinguishes facts from speculation.");
+    } else if (findings.factVsSpeculation === "mixed") {
+      score -= 4;
+      reasons.push("Minor flag: Article mixes facts and speculation without clear distinction.");
+    }
   }
+
+  // ── sourceCitations penalty ───────────────────────────────────────────────
   if (findings.sourceCitations) {
     analysis.sourceCitations = findings.sourceCitations;
     if (findings.sourceCitations === "none") {
       score -= 5;
       reasons.push("Minor flag: Article does not cite sources for its claims.");
+    } else if (findings.sourceCitations === "weak") {
+      score -= 2;
+      reasons.push("Minor flag: Article relies on vague or anonymous sources.");
     }
   }
-  if (findings.exampleClaim) {
-    analysis.exampleClaim = findings.exampleClaim;
-  }
-  if (findings.exampleOpinion && findings.exampleOpinion !== "none") {
-    analysis.exampleOpinion = findings.exampleOpinion;
-  }
 
-  // Add AI detection to analysis
-  if (aiDetection) {
-    analysis.aiGenerated = aiDetection;
+  if (findings.exampleClaim) analysis.exampleClaim = findings.exampleClaim;
+  if (findings.exampleOpinion && findings.exampleOpinion !== "none") analysis.exampleOpinion = findings.exampleOpinion;
+  if (aiDetection) analysis.aiGenerated = aiDetection;
+
+  // ── AI keyword check in contentReason ────────────────────────────────────
+  if (!aiWarning && findings.contentReason) {
+    const aiKeywords = ['ai-written', 'ai-generated', 'written by ai', 'generated by ai', 'artificial intelligence wrote', 'chatgpt'];
+    if (aiKeywords.some(k => findings.contentReason.toLowerCase().includes(k))) {
+      score -= 20;
+      aiWarning = "The content analysis detected this article was written by AI.";
+      reasons.push("Serious flag: Article appears to be AI-generated based on content analysis.");
+    }
   }
 
   return { score: Math.min(100, Math.max(0, score)), reasons, biasWarning, aiWarning, analysis };
@@ -428,9 +447,10 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
   if (!jsonMatch) throw new Error("Model did not return valid JSON. Try again.");
 
   const findings = JSON.parse(jsonMatch[0]);
+  
 
   // Force trusted/disinfo if our code knows
-  if (trusted)  findings.domainTier = "trusted";
+  if (trusted && findings.domainTier !== "disinfo") findings.domainTier = "trusted";
   if (disinfo)  findings.domainTier = "disinfo";
   if (!contentAvailable) findings.contentQuality = "blocked";
 
