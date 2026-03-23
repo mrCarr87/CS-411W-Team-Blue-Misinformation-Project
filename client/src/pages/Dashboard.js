@@ -92,27 +92,27 @@ export default function Dashboard({ setPage, user }) {
             </div>
 
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                 Welcome <span className="text-slate-700">${user?.email || "User"}</span>
               </h1>
-              <p className="mt-2 text-sm text-slate-600 max-w-xl">
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                 Here are your saved analyses.
               </p>
             </div>
           </div>
 
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-600 dark:text-slate-400">
             Saved items: <span className="font-semibold text-slate-900">${items.length}</span>
           </div>
         </div>
       <//>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Saved Links</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Saved Links</h2>
 
         <button
           type="button"
-          className="text-sm text-slate-700 hover:underline"
+          className="text-sm text-slate-700 hover:underline dark:text-slate-300 dark:hover:underline"
           onClick=${loadSaved}
           disabled=${loading}
         >
