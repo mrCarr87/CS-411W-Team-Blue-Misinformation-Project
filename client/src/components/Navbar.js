@@ -9,10 +9,10 @@ export default function Navbar({ setPage, user, onLogout }) {
     const next = toggleTheme();
     setMode(next);
   }
-  return html`
-    <header className="sticky top-0 z-10 border-b border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 dark:shadow-md /75 backdrop-blur">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
 
+  return html`
+    <header className="sticky top-0 z-10 border-b border-slate-300 bg-white/75 dark:border-slate-700 dark:bg-slate-900/75 backdrop-blur">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className=${"h-9 w-9 rounded-lg text-white grid place-items-center font-semibold shadow-soft bg-gradient-to-br " + theme.accent}>
             MD
@@ -29,14 +29,13 @@ export default function Navbar({ setPage, user, onLogout }) {
         </div>
 
         <div className="flex items-center gap-3">
-        
-        <button
-          type="button"
-          onClick=${handleThemeToggle}
-          className="px-3 py-1 text-sm rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 transition"
-        >
-          ${mode === "dark" ? "Light mode" : "Dark mode"}
-        </button>
+          <button
+            type="button"
+            onClick=${handleThemeToggle}
+            className="px-3 py-1 text-sm rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+          >
+            ${mode === "dark" ? "Light mode" : "Dark mode"}
+          </button>
 
           <button
             type="button"
@@ -51,15 +50,27 @@ export default function Navbar({ setPage, user, onLogout }) {
                 <button
                   type="button"
                   onClick=${() => setPage && setPage("dashboard")}
-                  className="text-sm text-slate-700 hover:underlinedark:text-slate-200"
+                  className="text-sm text-slate-700 hover:underline dark:text-slate-200 dark:hover:underline"
                 >
                   Dashboard
                 </button>
 
+                ${user.role === "admin"
+                  ? html`
+                      <button
+                        type="button"
+                        onClick=${() => setPage && setPage("admin")}
+                        className="text-sm text-slate-700 hover:underline dark:text-slate-200 dark:hover:underline"
+                      >
+                        Admin
+                      </button>
+                    `
+                  : null}
+
                 <button
                   type="button"
                   onClick=${() => onLogout && onLogout()}
-                  className="px-3 py-1 text-sm font-medium text-white shadow-soft bg-gradient-to-br ${theme.accent} hover:opacity-90 transition"
+                  className=${"px-3 py-1 text-sm font-medium text-white shadow-soft bg-gradient-to-br " + theme.accent + " hover:opacity-90 transition"}
                 >
                   Logout
                 </button>

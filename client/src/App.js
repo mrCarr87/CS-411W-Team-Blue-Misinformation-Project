@@ -3,6 +3,7 @@ import Analyze from "./pages/Analyze.js";
 import Dashboard from "./pages/Dashboard.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
+import Admin from "./pages/Admin.js";
 
 import { apiFetch } from "./ui/api.js";
 import { getToken, clearToken } from "./ui/auth.js";
@@ -18,16 +19,19 @@ export default function App() {
     (async () => {
       try {
         const token = getToken();
+
         if (!token) {
           setUser(null);
           return;
         }
+
         const me = await apiFetch("/api/me");
         const normalized = {
           id: me.id ?? me.user_id,
           email: me.email,
           role: me.role,
         };
+
         setUser(normalized);
       } catch (e) {
         clearToken();
@@ -52,16 +56,36 @@ export default function App() {
     return true;
   }
 
+  function guardAdmin() {
+    if (!user) {
+      setPage("login");
+      return false;
+    }
+
+    if (user.role !== "admin") {
+      setPage("dashboard");
+      return false;
+    }
+
+    return true;
+  }
+
   const body =
     page === "analyze"
       ? html`<${Analyze} />`
       : page === "dashboard"
-        ? (guardDashboard(), html`<${Dashboard} setPage=${setPage} user=${user} />`)
-        : page === "login"
-          ? html`<${Login} setPage=${setPage} onLoggedIn=${setUser} />`
-          : page === "register"
-            ? html`<${Register} setPage=${setPage} />`
-            : html`<${Analyze} />`;
+        ? guardDashboard()
+          ? html`<${Dashboard} setPage=${setPage} user=${user} />`
+          : null
+        : page === "admin"
+          ? guardAdmin()
+            ? html`<${Admin} setPage=${setPage} user=${user} />`
+            : null
+          : page === "login"
+            ? html`<${Login} setPage=${setPage} onLoggedIn=${setUser} />`
+            : page === "register"
+              ? html`<${Register} setPage=${setPage} />`
+              : html`<${Analyze} />`;
 
   return html`
     <div className="min-h-screen">
