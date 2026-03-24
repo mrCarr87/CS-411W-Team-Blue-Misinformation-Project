@@ -344,17 +344,21 @@ export default function Analyze() {
 
             <${ScoreMeter} score=${result.score} />
 
-            ${result.aiWarning && html`
-              <div className="flex items-start gap-3 rounded-xl border-2 border-purple-300 bg-purple-50 px-4 py-3">
-                <svg className="mt-0.5 h-5 w-5 shrink-0 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-purple-800">🤖 AI-Generated Content Detected</p>
-                  <p className="text-xs text-purple-700 mt-0.5">${result.aiWarning}</p>
-                </div>
-              </div>
-            `}
+            ${result.redditTrending && html`
+  <div className="flex items-start gap-3 rounded-xl border-2 ${result.redditTrending.level === "high" ? "border-orange-300 bg-orange-50" : "border-sky-300 bg-sky-50"} px-4 py-3">
+    <svg className=${"mt-0.5 h-5 w-5 shrink-0 " + (result.redditTrending.level === "high" ? "text-orange-500" : "text-sky-500")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+    <div>
+      <p className=${"text-sm font-semibold " + (result.redditTrending.level === "high" ? "text-orange-800" : "text-sky-800")}>
+        ⚡ ${result.redditTrending.level === "high" ? "Actively Trending on Reddit" : "Recently Trending on Reddit"}
+      </p>
+      <p className=${"text-xs mt-0.5 " + (result.redditTrending.level === "high" ? "text-orange-700" : "text-sky-700")}>
+        ${result.redditTrending.message}
+      </p>
+    </div>
+  </div>
+`}
 
             ${result.biasWarning && html`
               <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">

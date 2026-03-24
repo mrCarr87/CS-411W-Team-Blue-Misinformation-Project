@@ -369,17 +369,19 @@ export async function analyzeCredibility(url) {
   if (!url) throw new Error("No URL provided");
 
   // 1. Extract article content — try article-extractor first, then ScraperAPI, then fallback
-  let published, contentSnippet, contentAvailable, fullText;
+  let published, contentSnippet, contentAvailable, fullText, articleTitle;
+
   try {
     const data = await extract(url);
+    articleTitle = data?.title ?? null; // ADD THIS
     published = data?.published;
     const raw = striptags(data?.content ?? "").trim();
     if (raw.length > 50) {
-      fullText         = raw; // Keep full text for AI detection
+      fullText         = raw;
       contentSnippet   = raw.slice(0, 2000);
       contentAvailable = true;
       console.log("Content snippet length:", contentSnippet.length);
-console.log("First 200 chars:", contentSnippet.slice(0, 200));
+      console.log("First 200 chars:", contentSnippet.slice(0, 200));
     } else {
       throw new Error("Empty content");
     }
@@ -408,6 +410,64 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
         console.log("❌ All content extraction methods failed");
       }
     }
+
+  }
+
+  async function checkRedditTrending(headline) {
+    if (!headline) return null;
+  
+    try {
+      const query = encodeURIComponent(headline.slice(0, 100));
+      console.log("🔴 Reddit query:", query); // debug log goes HERE
+      const res = await fetch(
+        `https://www.reddit.com/search.json?q=${query}&sort=new&limit=10&t=week`,
+        {
+          headers: { "User-Agent": "misinformation-detector/1.0" }
+        }
+      );
+  
+      if (!res.ok) return null;
+      const data = await res.json();
+      const posts = data?.data?.children ?? [];
+  
+      console.log("🔴 Reddit posts found:", posts.length); // debug log goes HERE
+      if (posts.length > 0) {
+        console.log("🔴 Top post score:", posts[0].data.score);
+        console.log("🔴 Top post comments:", posts[0].data.num_comments);
+        console.log("🔴 Top post created:", new Date(posts[0].data.created_utc * 1000).toISOString());
+      }
+  
+      if (posts.length === 0) return null;
+  
+      const now = Math.floor(Date.now() / 1000);
+      const twentyFourHoursAgo = now - 24 * 60 * 60;
+  
+      const recentPosts = posts.filter(p => p.data.created_utc > twentyFourHoursAgo);
+      const highTractionPosts = posts.filter(p => p.data.score > 100 || p.data.num_comments > 50);
+  
+      if (recentPosts.length === 0 && highTractionPosts.length === 0) return null;
+  
+      if (recentPosts.length > 0 && highTractionPosts.length > 0) {
+        return {
+          level: "high",
+          message: `This topic is actively trending on Reddit with ${highTractionPosts.length} high-engagement post(s) in the last 24 hours. Information may be rapidly evolving — verify with multiple sources before sharing.`
+        };
+      } else if (recentPosts.length > 0) {
+        return {
+          level: "medium",
+          message: `This topic has appeared on Reddit recently. Information may still be developing — check back for updates.`
+        };
+      } else {
+        return {
+          level: "medium",
+          message: `This topic is generating discussion on Reddit. Cross-reference with other sources for a complete picture.`
+        };
+      }
+  
+    } catch (err) {
+      console.error("Reddit check failed:", err);
+      return null;
+    }
   }
 
   const domain  = extractDomain(url);
@@ -416,7 +476,7 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
 
   // 2. Detect AI-generated content (parallel with content analysis)
   const aiDetectionPromise = contentAvailable ? detectAIGenerated(fullText) : Promise.resolve(null);
-
+  const redditPromise = checkRedditTrending(articleTitle ?? domain);
   // 3. Call Hugging Face — judgment calls + text analysis
 
   const response = await fetch(HF_URL, {
@@ -455,7 +515,10 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
   if (!contentAvailable) findings.contentQuality = "blocked";
 
   // Wait for AI detection to complete
-  const aiDetection = await aiDetectionPromise;
+  const [aiDetection, redditTrending] = await Promise.all([
+    aiDetectionPromise,
+    redditPromise,
+  ]);
 
   // 4. Calculate score in code
   const { score, reasons, biasWarning, aiWarning, analysis } = calculateScore(findings, aiDetection);
@@ -465,6 +528,7 @@ console.log("First 200 chars:", contentSnippet.slice(0, 200));
     reasons,
     biasWarning:    biasWarning ?? null,
     aiWarning:      aiWarning ?? null,
+    redditTrending: redditTrending ?? null,
     analysis:       Object.keys(analysis).length > 0 ? analysis : null,
     metadata:       { published, domain },
     contentBlocked: !contentAvailable,
