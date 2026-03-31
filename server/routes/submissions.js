@@ -139,6 +139,7 @@ router.get("/history", authMiddleware, async (req, res) => {
   }
 });
 
+
 // Save Endpoint
 router.post("/save/:submissionId", authMiddleware, async (req, res) => {
   const { submissionId } = req.params;
@@ -188,6 +189,77 @@ router.delete("/save/:submissionId", authMiddleware, async (req, res) => {
   }
 });
 
+// edit/update saved articles
+router.post("/saved/:submissionId", authMiddleware, async(req, res) => {
+    const {submissionId} = req.params 
+
+    try {
+      // Ensure tags area submitted
+      const { tags } = req.body;
+      if (!tags) return res.status(400).json({ error: "Tags required" });
+
+
+      // Ensure submission belongs to user
+      const [check] = await pool.query(
+        `SELECT id FROM submissions WHERE id = ? AND user_id = ?`,
+        [submissionId, req.user.id]
+      );
+
+      if (check.length === 0) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      await pool.query(
+      `UPDATE saved_articles
+       SET tags = ?
+       WHERE submission_id = ?
+       `,
+      [tags, submissionId]
+    );
+
+    res.json({ message: "Article tags updated" });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to update saved article" });
+        console.log(err)
+    }
+
+})
+
+router.get("/saved/:submissionId", authMiddleware, async(req, res) => {
+  const {submissionId} = req.params
+
+  try {
+    // Ensure submission belongs to user
+      const [check] = await pool.query(
+        `SELECT id FROM submissions WHERE id = ? AND user_id = ?`,
+        [submissionId, req.user.id]
+      );
+
+      if (check.length === 0) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const [rows] = await pool.query(
+        `
+        SELECT  saved_at,
+                tags
+        FROM saved_articles
+        WHERE submission_id = ?
+        
+        `,
+        [submissionId]
+      );
+
+      res.json(rows)
+
+
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to GET saved article" });
+    console.log(err)
+  }
+})
+
 // Get saved
 router.get("/saved", authMiddleware, async (req, res) => {
   try {
@@ -196,6 +268,8 @@ router.get("/saved", authMiddleware, async (req, res) => {
       SELECT s.id AS submission_id,
              s.original_url,
              s.date_submitted,
+             a.text_content,
+             sa.tags,
              cs.overall_score,
              cs.verdict
       FROM saved_articles sa
