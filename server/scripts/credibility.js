@@ -477,8 +477,8 @@ export async function analyzeCredibility(url) {
   // 2. Detect AI-generated content (parallel with content analysis)
   const aiDetectionPromise = contentAvailable ? detectAIGenerated(fullText) : Promise.resolve(null);
   const redditPromise = checkRedditTrending(articleTitle ?? domain);
+  
   // 3. Call Hugging Face — judgment calls + text analysis
-
   const response = await fetch(HF_URL, {
     method: "POST",
     headers: {
@@ -532,6 +532,94 @@ export async function analyzeCredibility(url) {
     analysis:       Object.keys(analysis).length > 0 ? analysis : null,
     metadata:       { published, domain },
     contentBlocked: !contentAvailable,
+  };
+}
+
+/**
+ * Analyse raw pasted text without fetching any URL.
+ *
+ * @param {string} text       - The article body the user pasted.
+ * @param {string|null} sourceUrl - Optional URL used only for domain scoring.
+ */
+export async function analyzeCredibilityFromText(text, sourceUrl = null) {
+  if (!text || text.length < 100) throw new Error("Text too short to analyse.");
+
+  // Domain info (only if caller provided a URL)
+  let domain  = "unknown";
+  let trusted = false;
+  let disinfo = false;
+
+  if (sourceUrl) {
+    domain  = extractDomain(sourceUrl);
+    trusted = isTrusted(domain);
+    disinfo = isDisinfo(domain);
+  }
+
+  const contentSnippet   = text.slice(0, 2000);
+  const contentAvailable = true;
+
+  // Detect AI-generated content in parallel
+  const aiDetectionPromise = detectAIGenerated(text);
+
+  // Build and send the HF prompt — same structure as URL-based analysis
+  const response = await fetch(HF_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${HF_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: HF_MODEL,
+      messages: [{
+        role: "user",
+        content: buildPrompt({
+          domain,
+          published: null,        // no date available from raw text
+          contentSnippet,
+          contentAvailable,
+          trusted,
+          disinfo,
+        }),
+      }],
+      max_tokens: 600,
+      temperature: 0.1,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Hugging Face API error ${response.status}: ${errText}`);
+  }
+
+  const hfData    = await response.json();
+  const raw       = hfData?.choices?.[0]?.message?.content ?? "";
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Model did not return valid JSON. Try again.");
+
+  const findings = JSON.parse(jsonMatch[0]);
+
+  // Override domain tier if we have definitive knowledge
+  if (trusted)            findings.domainTier = "trusted";
+  if (disinfo)            findings.domainTier = "disinfo";
+  if (!sourceUrl)         findings.domainTier = "recognizable";
+
+  // No date available for raw text — treat as missing
+  findings.hasDate = false;
+  findings.dateOld = false;
+
+  const aiDetection = await aiDetectionPromise;
+
+  const { score, reasons, biasWarning, aiWarning, analysis } = calculateScore(findings, aiDetection);
+
+  return {
+    score,
+    reasons,
+    biasWarning:    biasWarning ?? null,
+    aiWarning:      aiWarning ?? null,
+    analysis:       Object.keys(analysis).length > 0 ? analysis : null,
+    metadata:       { domain: sourceUrl ? domain : null, published: null },
+    contentBlocked: false,
+    // Text-only analyses are never saved to the DB, so no submissionId
   };
 }
 

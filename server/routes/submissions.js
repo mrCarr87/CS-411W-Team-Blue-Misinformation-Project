@@ -2,7 +2,7 @@ import express from "express";
 import { pool } from "../db/db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { article_extract } from "../scripts/extraction.js";
-import { analyzeCredibility } from "../scripts/credibility.js";
+import { analyzeCredibility, analyzeCredibilityFromText } from "../scripts/credibility.js";
 
 const router = express.Router();
 
@@ -245,6 +245,22 @@ router.get("/me", authMiddleware, async(req, res) => {
   }
   
 })
+
+router.post("/analyze-text", async (req, res) => {
+  const { text, sourceUrl } = req.body;
+ 
+  if (!text || text.trim().length < 100) {
+    return res.status(400).json({ error: "Text must be at least 100 characters." });
+  }
+ 
+  try {
+    const result = await analyzeCredibilityFromText(text.trim(), sourceUrl?.trim() || null);
+    res.json(result);
+  } catch (err) {
+    console.error("Text analysis error:", err);
+    res.status(500).json({ error: err.message || "Text analysis failed" });
+  }
+});
 
 
 export default router;
