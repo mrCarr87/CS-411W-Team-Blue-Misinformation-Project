@@ -25,69 +25,12 @@ function formatDate(ts) {
   }
 }
 
-function scoreBadge(score) {
-  if (score >= 75) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (score >= 50) return "bg-amber-50 text-amber-700 border-amber-200";
-  if (score >= 25) return "bg-orange-50 text-orange-700 border-orange-200";
-  return "bg-rose-50 text-rose-700 border-rose-200";
-}
-
 function verdictText(score, verdict) {
   if (verdict) return verdict;
   if (score >= 75) return "High Credibility";
   if (score >= 50) return "Moderate Credibility";
   if (score >= 25) return "Low Credibility";
   return "Very Low Credibility";
-}
-
-function HistoryCard({ item, onOpen }) {
-  const domain = domainFromUrl(item.original_url);
-  const score = item.overall_score != null ? Math.round(Number(item.overall_score)) : 0;
-  const badge = scoreBadge(score);
-
-  return html`
-    <article className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900">
-      <div className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              ${domain} • ${formatDate(item.date_submitted)}
-            </div>
-
-            <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words">
-              ${item.original_url}
-            </h3>
-          </div>
-
-          <div className=${"shrink-0 inline-flex items-center border px-2.5 py-1 text-xs font-medium " + badge}>
-            ${score}/100
-          </div>
-        </div>
-
-        <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <div>
-            <span className="font-medium text-slate-700 dark:text-slate-200">Verdict:</span>
-            ${verdictText(score, item.verdict)}
-          </div>
-
-          <div>
-            <span className="font-medium text-slate-700 dark:text-slate-200">Confidence:</span>
-            ${item.confidence_level != null ? item.confidence_level + "%" : "N/A"}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 pt-2">
-          <button
-            type="button"
-            onClick=${() => onOpen(item.original_url)}
-            className=${"px-3 py-2 text-sm font-medium transition " + theme.buttonPrimary}
-          >
-            Open Article
-          </button>
-        </div>
-      </div>
-    </article>
-  `;
 }
 
 export default function Dashboard({ setPage, user }) {
@@ -114,7 +57,8 @@ export default function Dashboard({ setPage, user }) {
         domain: domainFromUrl(r.original_url),
         date: formatDate(r.date_submitted),
         score: r.overall_score != null ? Math.round(Number(r.overall_score)) : 0,
-        note: r.verdict || "Saved analysis",
+        note: r.note || r.verdict || "Saved analysis",
+        tag: r.tag || r.tags || "",
       }));
 
       setItems(mapped);
@@ -132,7 +76,22 @@ export default function Dashboard({ setPage, user }) {
       setHistoryError(null);
 
       const rows = await apiFetch("/api/history");
-      setHistoryItems(rows || []);
+
+      const mapped = (rows || []).map((r) => {
+        const score = r.overall_score != null ? Math.round(Number(r.overall_score)) : 0;
+        return {
+          id: r.submission_id,
+          title: r.original_url,
+          url: r.original_url,
+          domain: domainFromUrl(r.original_url),
+          date: formatDate(r.date_submitted),
+          score,
+          note: verdictText(score, r.verdict),
+          confidence: r.confidence_level != null ? Number(r.confidence_level) : null,
+        };
+      });
+
+      setHistoryItems(mapped);
     } catch (e) {
       setHistoryError(e.message || "Failed to load submission history.");
       setHistoryItems([]);
@@ -152,12 +111,6 @@ export default function Dashboard({ setPage, user }) {
     }
   }
 
-  function onOpenHistory(url) {
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }
-
   async function onRemove(item) {
     const prev = items;
     setItems((p) => p.filter((x) => x.id !== item.id));
@@ -167,6 +120,22 @@ export default function Dashboard({ setPage, user }) {
     } catch (e) {
       setItems(prev);
       alert(e.message || "Failed to remove saved item.");
+    }
+  }
+
+  async function onEdit(item) {
+    const newTag = window.prompt("Enter a tag:", item.tag || "");
+    if (newTag === null) return;
+
+    try {
+      await apiFetch(`/api/save/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ tag: newTag.trim() }),
+      });
+
+      await loadSaved();
+    } catch (e) {
+      alert(e.message || "Failed to update saved article.");
     }
   }
 
@@ -241,11 +210,7 @@ export default function Dashboard({ setPage, user }) {
           </div>
         `}
 
-        ${loading && html`
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Loading saved items...
-          </div>
-        `}
+        ${loading && html`<div className="text-sm text-slate-500 dark:text-slate-400">Loading saved items...</div>`}
 
         ${!loading && !error && items.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -261,6 +226,10 @@ export default function Dashboard({ setPage, user }) {
                 item=${item}
                 onOpen=${onOpen}
                 onRemove=${onRemove}
+                onEdit=${onEdit}
+                showRemove=${true}
+                showEdit=${true}
+                openLabel="Open"
               />
             `)}
           </div>
@@ -287,11 +256,7 @@ export default function Dashboard({ setPage, user }) {
           </div>
         `}
 
-        ${historyLoading && html`
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Loading submission history...
-          </div>
-        `}
+        ${historyLoading && html`<div className="text-sm text-slate-500 dark:text-slate-400">Loading submission history...</div>`}
 
         ${!historyLoading && !historyError && historyItems.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -302,10 +267,13 @@ export default function Dashboard({ setPage, user }) {
         ${historyItems.length > 0 && html`
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             ${historyItems.map((item) => html`
-              <${HistoryCard}
-                key=${item.submission_id}
+              <${SavedArticleCard}
+                key=${item.id}
                 item=${item}
-                onOpen=${onOpenHistory}
+                onOpen=${onOpen}
+                showRemove=${false}
+                showEdit=${false}
+                openLabel="Open Article"
               />
             `)}
           </div>

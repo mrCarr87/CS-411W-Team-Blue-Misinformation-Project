@@ -171,4 +171,33 @@ export function registerDbApi(app) {
       res.status(500).json({ error: "Failed to insert score" });
     }
   });
+
+    // Soft delete source (admin)
+  app.delete("/sources/:id", authMiddleware, requireAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const [check] = await pool.query(
+        `SELECT id FROM sources WHERE id = ?`,
+        [id]
+      );
+
+      if (check.length === 0) {
+        return res.status(404).json({ error: "Source not found" });
+      }
+
+      await pool.query(
+        `UPDATE sources
+         SET active = 0,
+             last_updated = NOW()
+         WHERE id = ?`,
+        [id]
+      );
+
+      res.json({ ok: true, message: "Source deactivated" });
+    } catch (err) {
+      console.error("DELETE /sources/:id error:", err);
+      res.status(500).json({ error: "Failed to deactivate source" });
+    }
+  });
 }
