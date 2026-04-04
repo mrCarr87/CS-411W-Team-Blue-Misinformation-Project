@@ -43,6 +43,8 @@ export default function Dashboard({ setPage, user }) {
   const [error, setError] = window.React.useState(null);
   const [historyError, setHistoryError] = window.React.useState(null);
 
+  const [selectedItem, setSelectedItem] = window.React.useState(null);
+
   async function loadSaved() {
     try {
       setLoading(true);
@@ -59,6 +61,7 @@ export default function Dashboard({ setPage, user }) {
         score: r.overall_score != null ? Math.round(Number(r.overall_score)) : 0,
         note: r.note || r.verdict || "Saved analysis",
         tag: r.tag || r.tags || "",
+        textContent: r.text_content || "",
       }));
 
       setItems(mapped);
@@ -105,10 +108,18 @@ export default function Dashboard({ setPage, user }) {
     loadHistory();
   }, []);
 
-  function onOpen(item) {
+  function onOpenSaved(item) {
+    setSelectedItem(item);
+  }
+
+  function onOpenHistory(item) {
     if (item.url) {
       window.open(item.url, "_blank", "noopener,noreferrer");
     }
+  }
+
+  function closeModal() {
+    setSelectedItem(null);
   }
 
   async function onRemove(item) {
@@ -117,6 +128,9 @@ export default function Dashboard({ setPage, user }) {
 
     try {
       await apiFetch(`/api/save/${item.id}`, { method: "DELETE" });
+      if (selectedItem && selectedItem.id === item.id) {
+        closeModal();
+      }
     } catch (e) {
       setItems(prev);
       alert(e.message || "Failed to remove saved item.");
@@ -128,12 +142,19 @@ export default function Dashboard({ setPage, user }) {
     if (newTag === null) return;
 
     try {
-      await apiFetch(`/api/save/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ tag: newTag.trim() }),
+      await apiFetch(`/api/saved/${item.id}`, {
+        method: "POST",
+        body: JSON.stringify({ tags: newTag.trim() }),
       });
 
       await loadSaved();
+
+      if (selectedItem && selectedItem.id === item.id) {
+        setSelectedItem({
+          ...selectedItem,
+          tag: newTag.trim(),
+        });
+      }
     } catch (e) {
       alert(e.message || "Failed to update saved article.");
     }
@@ -205,12 +226,16 @@ export default function Dashboard({ setPage, user }) {
         </div>
 
         ${error && html`
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             <span className="font-medium">Error:</span> ${error}
           </div>
         `}
 
-        ${loading && html`<div className="text-sm text-slate-500 dark:text-slate-400">Loading saved items...</div>`}
+        ${loading && html`
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Loading saved items...
+          </div>
+        `}
 
         ${!loading && !error && items.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -224,7 +249,7 @@ export default function Dashboard({ setPage, user }) {
               <${SavedArticleCard}
                 key=${item.id}
                 item=${item}
-                onOpen=${onOpen}
+                onOpen=${onOpenSaved}
                 onRemove=${onRemove}
                 onEdit=${onEdit}
                 showRemove=${true}
@@ -251,12 +276,16 @@ export default function Dashboard({ setPage, user }) {
         </div>
 
         ${historyError && html`
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
             <span className="font-medium">Error:</span> ${historyError}
           </div>
         `}
 
-        ${historyLoading && html`<div className="text-sm text-slate-500 dark:text-slate-400">Loading submission history...</div>`}
+        ${historyLoading && html`
+          <div className="text-sm text-slate-500 dark:text-slate-400">
+            Loading submission history...
+          </div>
+        `}
 
         ${!historyLoading && !historyError && historyItems.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -270,7 +299,7 @@ export default function Dashboard({ setPage, user }) {
               <${SavedArticleCard}
                 key=${item.id}
                 item=${item}
-                onOpen=${onOpen}
+                onOpen=${onOpenHistory}
                 showRemove=${false}
                 showEdit=${false}
                 openLabel="Open Article"
@@ -279,6 +308,89 @@ export default function Dashboard({ setPage, user }) {
           </div>
         `}
       </section>
+
+      ${selectedItem && html`
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick=${closeModal}
+        >
+          <div
+            className="w-full max-w-3xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-xl max-h-[85vh] overflow-hidden"
+            onClick=${(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  ${selectedItem.title}
+                </h3>
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  ${selectedItem.domain} • ${selectedItem.date}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick=${closeModal}
+                className="text-sm text-slate-600 hover:underline dark:text-slate-300"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4 overflow-y-auto max-h-[70vh]">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <span className="font-medium">Score:</span> ${selectedItem.score}/100
+                </div>
+
+                ${selectedItem.tag
+                  ? html`
+                      <span className="inline-flex items-center border px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 dark:border-slate-700">
+                        ${selectedItem.tag}
+                      </span>
+                    `
+                  : null}
+              </div>
+
+              <div className="text-sm text-slate-700 dark:text-slate-300 break-words">
+                <span className="font-medium">URL:</span> ${selectedItem.url}
+              </div>
+
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                <span className="font-medium">Summary:</span> ${selectedItem.note || "No summary available."}
+              </div>
+
+              <div className="border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  Article Text
+                </h4>
+
+                <div className="text-sm leading-6 text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                  ${selectedItem.textContent || "No article text available."}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick=${() => window.open(selectedItem.url, "_blank", "noopener,noreferrer")}
+                  className="px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition"
+                >
+                  Open Original Article
+                </button>
+
+                <button
+                  type="button"
+                  onClick=${closeModal}
+                  className="px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `}
     </div>
   `;
 }
