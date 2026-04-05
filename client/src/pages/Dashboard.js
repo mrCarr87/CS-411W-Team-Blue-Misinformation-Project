@@ -299,24 +299,24 @@ export default function Dashboard({ setPage, user }) {
             <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-100">
               ${trendStats.avg}
             </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400">
-            Across ${trendStats.total} analyses
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Across ${trendStats.total} analyses
+            </div>
           </div>
-        </div>
 
-        <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
-          <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Recent Trend
+          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Recent Trend
+            </div>
+            <div className="mt-2 text-2xl font-bold capitalize text-slate-900 dark:text-slate-100">
+              ${trendStats.direction}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Last 5 average: ${trendStats.recentAvg}
+            </div>
           </div>
-          <div className="mt-2 text-2xl font-bold capitalize text-slate-900 dark:text-slate-100">
-            ${trendStats.direction}
-        </div>
-        <div className="text-sm text-slate-600 dark:text-slate-400">
-          Last 5 average: ${trendStats.recentAvg}
-        </div>
-      </div>
 
-      <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
             <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Top Domain
             </div>
