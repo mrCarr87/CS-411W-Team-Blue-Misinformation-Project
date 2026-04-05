@@ -21,8 +21,10 @@ export default function SavedArticleCard({
   onOpen,
   onRemove,
   onEdit,
+  onSave,
   showRemove = false,
   showEdit = false,
+  showSave = false,
   openLabel = "Open",
 }) {
   const domain = item.domain || domainFromUrl(item.url);
@@ -74,7 +76,7 @@ export default function SavedArticleCard({
             `
           : null}
 
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
           <button
             type="button"
             onClick=${() => onOpen && onOpen(item)}
@@ -82,6 +84,18 @@ export default function SavedArticleCard({
           >
             ${openLabel}
           </button>
+
+          ${showSave
+            ? html`
+                <button
+                  type="button"
+                  onClick=${() => onSave && onSave(item)}
+                  className="px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition"
+                >
+                  Save
+                </button>
+              `
+            : null}
 
           ${showEdit
             ? html`

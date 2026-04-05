@@ -42,7 +42,7 @@ function scoreBucket(score) {
 
 function averageScore(rows) {
   if (!rows.length) return 0;
-  const total = rows.reduce((sum,r) => sum+ (Number(r.score) || 0), 0);
+  const total = rows.reduce((sum, r) => sum + (Number(r.score) || 0), 0);
   return Math.round(total / rows.length);
 }
 
@@ -50,7 +50,7 @@ function mostCommonDomain(rows) {
   const counts = new Map();
   for (const row of rows) {
     const domain = row.domain || "unknown";
-    counts.set(domain, (counts.get(domain) ||0) + 1);
+    counts.set(domain, (counts.get(domain) || 0) + 1);
   }
 
   let winner = "N/A";
@@ -61,7 +61,7 @@ function mostCommonDomain(rows) {
       max = count;
     }
   }
-  return {domain: winner, count: max};
+  return { domain: winner, count: max };
 }
 
 function buildTrendStats(rows) {
@@ -82,9 +82,9 @@ function buildTrendStats(rows) {
   const topDomain = mostCommonDomain(rows);
 
   const recent = [...rows]
-  .slice()
-  .sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate))
-  .slice(0, 5);
+    .slice()
+    .sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate))
+    .slice(0, 5);
 
   const recentAvg = averageScore(recent);
 
@@ -93,7 +93,8 @@ function buildTrendStats(rows) {
     if (recentAvg >= avg + 5) direction = "Improving";
     else if (recentAvg <= avg - 5) direction = "Declining";
   }
-  return{
+
+  return {
     total,
     avg,
     buckets,
@@ -101,7 +102,7 @@ function buildTrendStats(rows) {
     recentAvg,
     direction
   };
-  }
+}
 
 export default function Dashboard({ setPage, user }) {
   const [items, setItems] = window.React.useState([]);
@@ -114,9 +115,7 @@ export default function Dashboard({ setPage, user }) {
   const [historyError, setHistoryError] = window.React.useState(null);
 
   const [selectedItem, setSelectedItem] = window.React.useState(null);
-
-  const trendRows = [...items, ...historyItems];
-  const trendStats = buildTrendStats(trendRows);
+  const [query, setQuery] = window.React.useState("");
 
   async function loadSaved() {
     try {
@@ -127,7 +126,7 @@ export default function Dashboard({ setPage, user }) {
 
       const mapped = (rows || []).map((r) => ({
         id: r.submission_id,
-        title: `Saved analysis #${r.submission_id}`,
+        title: r.title || `Saved analysis #${r.submission_id}`,
         url: r.original_url,
         domain: domainFromUrl(r.original_url),
         rawDate: r.date_submitted,
@@ -158,7 +157,7 @@ export default function Dashboard({ setPage, user }) {
         const score = r.overall_score != null ? Math.round(Number(r.overall_score)) : 0;
         return {
           id: r.submission_id,
-          title: r.original_url,
+          title: r.title || r.original_url,
           url: r.original_url,
           domain: domainFromUrl(r.original_url),
           rawDate: r.date_submitted,
@@ -235,6 +234,48 @@ export default function Dashboard({ setPage, user }) {
     }
   }
 
+  async function onSaveFromHistory(item) {
+    try {
+      await apiFetch(`/api/save/${item.id}`, {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+
+      await loadSaved();
+      alert("Article saved to your dashboard.");
+    } catch (e) {
+      alert(e.message || "Failed to save article.");
+    }
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filteredItems = items.filter((item) => {
+    if (!normalizedQuery) return true;
+
+    return (
+      (item.title || "").toLowerCase().includes(normalizedQuery) ||
+      (item.url || "").toLowerCase().includes(normalizedQuery) ||
+      (item.domain || "").toLowerCase().includes(normalizedQuery) ||
+      (item.note || "").toLowerCase().includes(normalizedQuery) ||
+      (item.tag || "").toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const filteredHistoryItems = historyItems.filter((item) => {
+    if (!normalizedQuery) return true;
+
+    return (
+      (item.title || "").toLowerCase().includes(normalizedQuery) ||
+      (item.url || "").toLowerCase().includes(normalizedQuery) ||
+      (item.domain || "").toLowerCase().includes(normalizedQuery) ||
+      (item.note || "").toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const trendRows = [...filteredItems, ...filteredHistoryItems];
+  const trendStats = buildTrendStats(trendRows);
+
   const actions = html`
     <button
       type="button"
@@ -285,6 +326,23 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
       <//>
+
+      <section className="space-y-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Search dashboard
+          </label>
+          <div className="flex rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-sm">
+            <input
+              type="text"
+              value=${query}
+              onInput=${(e) => setQuery(e.target.value)}
+              placeholder="Search by article, domain, verdict, or tag"
+              className="w-full bg-transparent px-3 py-3 text-sm text-slate-900 dark:text-slate-100 outline-none"
+            />
+          </div>
+        </div>
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -372,7 +430,6 @@ export default function Dashboard({ setPage, user }) {
           })}
         </div>
       </section>
-      
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -400,15 +457,15 @@ export default function Dashboard({ setPage, user }) {
           </div>
         `}
 
-        ${!loading && !error && items.length === 0 && html`
+        ${!loading && !error && filteredItems.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            No saved analyses yet. Run a new analysis and save it.
+            No saved analyses match your search.
           </div>
         `}
 
-        ${items.length > 0 && html`
+        ${filteredItems.length > 0 && html`
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            ${items.map((item) => html`
+            ${filteredItems.map((item) => html`
               <${SavedArticleCard}
                 key=${item.id}
                 item=${item}
@@ -417,6 +474,7 @@ export default function Dashboard({ setPage, user }) {
                 onEdit=${onEdit}
                 showRemove=${true}
                 showEdit=${true}
+                showSave=${false}
                 openLabel="Open"
               />
             `)}
@@ -450,21 +508,23 @@ export default function Dashboard({ setPage, user }) {
           </div>
         `}
 
-        ${!historyLoading && !historyError && historyItems.length === 0 && html`
+        ${!historyLoading && !historyError && filteredHistoryItems.length === 0 && html`
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            No past submissions yet.
+            No submission history matches your search.
           </div>
         `}
 
-        ${historyItems.length > 0 && html`
+        ${filteredHistoryItems.length > 0 && html`
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            ${historyItems.map((item) => html`
+            ${filteredHistoryItems.map((item) => html`
               <${SavedArticleCard}
                 key=${item.id}
                 item=${item}
                 onOpen=${onOpenHistory}
+                onSave=${onSaveFromHistory}
                 showRemove=${false}
                 showEdit=${false}
+                showSave=${true}
                 openLabel="Open Article"
               />
             `)}
