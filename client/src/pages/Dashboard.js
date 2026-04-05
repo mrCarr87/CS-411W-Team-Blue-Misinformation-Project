@@ -50,7 +50,7 @@ function mostCommonDomain(rows) {
   const counts = new Map();
   for (const row of rows) {
     const domain = row.domain || "unknown";
-    counts.set(mostCommonDomain, (counts.get(domain) ||0) + 1);
+    counts.set(domain, (counts.get(domain) ||0) + 1);
   }
 
   let winner = "N/A";
@@ -83,7 +83,7 @@ function buildTrendStats(rows) {
 
   const recent = [...rows]
   .slice()
-  .sort((a,b) => new Date(b.rawDate) - new date(a.rawDate))
+  .sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate))
   .slice(0, 5);
 
   const recentAvg = averageScore(recent);
@@ -291,13 +291,13 @@ export default function Dashboard({ setPage, user }) {
           Credibility Trends
         </h2>
 
-        <div className="grid gap-4 md:grid-cols-2 x1:grid-cols-4">
-          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
             <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Average Score
             </div>
             <div className="mt-2 text-3x1 font-bold text-slate-900 dark:text-slate-100">
-              ${trendsStats.avg}
+              ${trendStats.avg}
             </div>
           <div className="text-sm text-slate-600 dark:text-slate-400">
             Across ${trendStats.total} analyses
@@ -308,7 +308,7 @@ export default function Dashboard({ setPage, user }) {
           <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Recent Trend
           </div>
-          <div className="mt-2 text-2x1 font-bold capitalize text-slate-900 dark:text-slate-100">
+          <div className="mt-2 text-2xl font-bold capitalize text-slate-900 dark:text-slate-100">
             ${trendStats.direction}
         </div>
         <div className="text-sm text-slate-600 dark:text-slate-400">
