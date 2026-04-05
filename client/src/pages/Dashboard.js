@@ -33,6 +33,76 @@ function verdictText(score, verdict) {
   return "Very Low Credibility";
 }
 
+function scoreBucket(score) {
+  if (score >= 75) return "High";
+  if (score >= 50) return "Moderate";
+  if (score >= 25) return "Low";
+  return "Very Low";
+}
+
+function averageScore(rows) {
+  if (!rows.length) return 0;
+  const total = rows.reduce((sum,r) => sum+ (Number(r.score) || 0), 0);
+  return Math.round(total / rows.length);
+}
+
+function mostCommonDomain(rows) {
+  const counts = new Map();
+  for (const row of rows) {
+    const domain = row.domain || "unknown";
+    counts.set(mostCommonDomain, (counts.get(domain) ||0) + 1);
+  }
+
+  let winner = "N/A";
+  let max = 0;
+  for (const [domain, count] of counts.entries()) {
+    if (count > max) {
+      winner = domain;
+      max = count;
+    }
+  }
+  return {domain: winner, count: max};
+}
+
+function buildTrendStats(rows) {
+  const total = rows.length;
+  const avg = averageScore(rows);
+
+  const buckets = {
+    High: 0,
+    Moderate: 0,
+    Low: 0,
+    "Very Low": 0
+  };
+
+  for (const row of rows) {
+    buckets[scoreBucket(Number(row.score) || 0)] += 1;
+  }
+
+  const topDomain = mostCommonDomain(rows);
+
+  const recent = [...rows]
+  .slice()
+  .sort((a,b) => new Date(b.rawDate) - new date(a.rawDate))
+  .slice(0, 5);
+
+  const recentAvg = averageScore(recent);
+
+  let direction = "Steady";
+  if (recent.length >= 2) {
+    if (recentAvg >= avg + 5) direction = "Improving";
+    else if (recentAvg <= avg - 5) direction = "Declining";
+  }
+  return{
+    total,
+    avg,
+    buckets,
+    topDomain,
+    recentAvg,
+    direction
+  };
+  }
+
 export default function Dashboard({ setPage, user }) {
   const [items, setItems] = window.React.useState([]);
   const [historyItems, setHistoryItems] = window.React.useState([]);
@@ -44,6 +114,9 @@ export default function Dashboard({ setPage, user }) {
   const [historyError, setHistoryError] = window.React.useState(null);
 
   const [selectedItem, setSelectedItem] = window.React.useState(null);
+
+  const trendRows = [...items, ...historyItems];
+  const trendStats = buildTrendStats(trendRows);
 
   async function loadSaved() {
     try {
@@ -57,6 +130,7 @@ export default function Dashboard({ setPage, user }) {
         title: `Saved analysis #${r.submission_id}`,
         url: r.original_url,
         domain: domainFromUrl(r.original_url),
+        rawDate: r.date_submitted,
         date: formatDate(r.date_submitted),
         score: r.overall_score != null ? Math.round(Number(r.overall_score)) : 0,
         note: r.note || r.verdict || "Saved analysis",
@@ -87,6 +161,7 @@ export default function Dashboard({ setPage, user }) {
           title: r.original_url,
           url: r.original_url,
           domain: domainFromUrl(r.original_url),
+          rawDate: r.date_submitted,
           date: formatDate(r.date_submitted),
           score,
           note: verdictText(score, r.verdict),
@@ -210,6 +285,94 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
       <//>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          Credibility Trends
+        </h2>
+
+        <div className="grid gap-4 md:grid-cols-2 x1:grid-cols-4">
+          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4>
+            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Average Score
+            </div>
+            <div className="mt-2 text-3x1 font-bold text-slate-900 dark:text-slate-100">
+              ${trendsStats.avg}
+            </div>
+          <div className="text-sm text-slate-600 dark:text-slate-400">
+            Across ${trendStats.total} analyses
+          </div>
+        </div>
+
+        <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+          <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Recent Trend
+          </div>
+          <div className="mt-2 text-2x1 font-bold capitalize text-slate-900 dark:text-slate-100">
+            ${trendStats.direction}
+        </div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">
+          Last 5 average: ${trendStats.recentAvg}
+        </div>
+      </div>
+
+      <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Top Domain
+            </div>
+            <div className="mt-2 text-xl font-bold break-all text-slate-900 dark:text-slate-100">
+              ${trendStats.topDomain.domain}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              ${trendStats.topDomain.count} analyses
+            </div>
+          </div>
+
+          <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+            <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Low Credibility
+            </div>
+            <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-100">
+              ${trendStats.buckets["Low"] + trendStats.buckets["Very Low"]}
+            </div>
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              Items needing extra review
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+          <div className="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">
+            Score Distribution
+          </div>
+
+          ${[
+            ["High", trendStats.buckets["High"], "bg-emerald-500"],
+            ["Moderate", trendStats.buckets["Moderate"], "bg-amber-500"],
+            ["Low", trendStats.buckets["Low"], "bg-orange-500"],
+            ["Very Low", trendStats.buckets["Very Low"], "bg-rose-500"],
+          ].map(([label, count, barClass]) => {
+            const pct = trendStats.total ? Math.round((count / trendStats.total) * 100) : 0;
+
+            return html`
+              <div className="mb-3 last:mb-0">
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  <span className="text-slate-700 dark:text-slate-300">${label}</span>
+                  <span className="text-slate-500 dark:text-slate-400">${count} (${pct}%)</span>
+                </div>
+
+                <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div
+                    className=${"h-full rounded-full " + barClass}
+                    style=${{ width: pct + "%" }}
+                  />
+                </div>
+              </div>
+            `;
+          })}
+        </div>
+      </section>
+      
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
