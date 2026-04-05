@@ -266,7 +266,7 @@ function UrlTab() {
     try {
       const data = await apiFetch("/api/submit", {
         method: "POST",
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: url.trim(), source: "web" }),
       });
 
       setResult({

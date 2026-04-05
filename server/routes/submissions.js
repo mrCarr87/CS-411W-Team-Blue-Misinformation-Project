@@ -14,8 +14,9 @@ const router = express.Router();
   - Stores score in DB
 */
 router.post("/submit", authMiddleware, async (req, res) => {
-  const { url } = req.body;
+  const { url, source } = req.body;
   if (!url) return res.status(400).json({ error: "URL required" });
+  if (!source) return res.status(400).json({ error: "Source required" });
 
   const conn = await pool.getConnection();
 
@@ -24,9 +25,9 @@ router.post("/submit", authMiddleware, async (req, res) => {
 
     // Insert submission
     const [submissionResult] = await conn.query(
-      `INSERT INTO submissions (user_id, original_url)
-       VALUES (?, ?)`,
-      [req.user.id, url]
+      `INSERT INTO submissions (user_id, original_url, source)
+       VALUES (?, ?, ?)`,
+      [req.user.id, url, source]
     );
 
     const submissionId = submissionResult.insertId;
@@ -94,6 +95,15 @@ router.post("/submit", authMiddleware, async (req, res) => {
           : "Low Credibility",
         fullResult.reasons.join(" ")
       ]
+    );
+
+
+    // Update status of submission
+    await conn.query(
+      `UPDATE submissions
+       SET status = "decided"
+       WHERE user_id = ?`,
+      [req.user.id]
     );
 
     await conn.commit();

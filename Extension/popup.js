@@ -253,7 +253,7 @@ async function analyze(url) {
       // Logged in: use /api/submit to store in DB
       result = await apiFetch("/api/submit", {
         method: "POST",
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, source: "extension" }),
       });
     } else {
       // Not logged in: use the public /analyze endpoint
