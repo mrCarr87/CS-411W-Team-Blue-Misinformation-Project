@@ -296,7 +296,7 @@ export default function Dashboard({ setPage, user }) {
             <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Average Score
             </div>
-            <div className="mt-2 text-3x1 font-bold text-slate-900 dark:text-slate-100">
+            <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-100">
               ${trendStats.avg}
             </div>
           <div className="text-sm text-slate-600 dark:text-slate-400">
