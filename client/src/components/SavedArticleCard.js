@@ -22,9 +22,12 @@ export default function SavedArticleCard({
   onRemove,
   onEdit,
   onSave,
+  onCompare,
   showRemove = false,
   showEdit = false,
   showSave = false,
+  showCompare = false,
+  isCompared = false,
   openLabel = "Open",
 }) {
   const domain = item.domain || domainFromUrl(item.url);
@@ -84,6 +87,23 @@ export default function SavedArticleCard({
           >
             ${openLabel}
           </button>
+
+          ${showCompare
+            ? html`
+                <button
+                  type="button"
+                  onClick=${() => onCompare && onCompare(item)}
+                  className=${[
+                    "px-3 py-2 text-sm font-medium transition",
+                    isCompared
+                      ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  ].join(" ")}
+                >
+                  ${isCompared ? "Selected" : "Compare"}
+                </button>
+              `
+            : null}
 
           ${showSave
             ? html`

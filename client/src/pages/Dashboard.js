@@ -117,6 +117,12 @@ export default function Dashboard({ setPage, user }) {
   const [selectedItem, setSelectedItem] = window.React.useState(null);
   const [query, setQuery] = window.React.useState("");
 
+  const [compareItems, setCompareItems] = window.React.useState([]);
+  const [selectedComparison, setSelectedComparison] = window.React.useState(null);
+  const [comparisonDetails, setComparisonDetails] = window.React.useState([]);
+  const [comparisonLoading, setComparisonLoading] = window.React.useState(false);
+  const [comparisonError, setComparisonError] = window.React.useState(null);
+
   async function loadSaved() {
     try {
       setLoading(true);
@@ -248,6 +254,73 @@ export default function Dashboard({ setPage, user }) {
     }
   }
 
+  function onCompare(item) {
+    setCompareItems((prev) => {
+      const exists = prev.some((x) => x.id === item.id);
+
+      if (exists) {
+        return prev.filter((x) => x.id !== item.id);
+      }
+
+      if (prev.length === 2) {
+        return [prev[1], item];
+      }
+
+      return [...prev, item];
+    });
+  }
+
+  function isCompared(item) {
+    return compareItems.some((x) => x.id === item.id);
+  }
+
+  async function openComparison() {
+    if (compareItems.length !== 2) return;
+
+    setSelectedComparison(compareItems);
+    setComparisonLoading(true);
+    setComparisonError(null);
+    setComparisonDetails([]);
+
+    try {
+      const details = await Promise.all(
+        compareItems.map((item) => apiFetch(`/api/submission/${item.id}`))
+      );
+
+      const mapped = details.map((r) => {
+        const score = r.overall_score != null ? Math.round(Number(r.overall_score)) : 0;
+        return {
+          id: r.submission_id,
+          title: r.title || r.original_url,
+          url: r.original_url,
+          domain: domainFromUrl(r.original_url),
+          rawDate: r.date_submitted,
+          date: formatDate(r.date_submitted),
+          score,
+          note: verdictText(score, r.verdict),
+          tag: r.tag || r.tags || "",
+          confidence: r.confidence_level != null ? Number(r.confidence_level) : null,
+          textContent: r.text_content || "",
+          author: r.author_name || "",
+          publishDate: r.publish_date ? formatDate(r.publish_date) : "",
+        };
+      });
+
+      setComparisonDetails(mapped);
+    } catch (e) {
+      setComparisonError(e.message || "Failed to load comparison details.");
+    } finally {
+      setComparisonLoading(false);
+    }
+  }
+
+  function closeComparison() {
+    setSelectedComparison(null);
+    setComparisonDetails([]);
+    setComparisonLoading(false);
+    setComparisonError(null);
+  }
+
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredItems = items.filter((item) => {
@@ -343,6 +416,45 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
       </section>
+
+      ${compareItems.length > 0 && html`
+        <section className="border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Compare Articles
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                ${compareItems.length === 1
+                  ? "Select one more article to compare."
+                  : "Two articles selected."}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              ${compareItems.length === 2
+                ? html`
+                    <button
+                      type="button"
+                      onClick=${openComparison}
+                      className="px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition"
+                    >
+                      Open Comparison
+                    </button>
+                  `
+                : null}
+
+              <button
+                type="button"
+                onClick=${() => setCompareItems([])}
+                className="px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </section>
+      `}
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -472,9 +584,12 @@ export default function Dashboard({ setPage, user }) {
                 onOpen=${onOpenSaved}
                 onRemove=${onRemove}
                 onEdit=${onEdit}
+                onCompare=${onCompare}
                 showRemove=${true}
                 showEdit=${true}
                 showSave=${false}
+                showCompare=${true}
+                isCompared=${isCompared(item)}
                 openLabel="Open"
               />
             `)}
@@ -522,9 +637,12 @@ export default function Dashboard({ setPage, user }) {
                 item=${item}
                 onOpen=${onOpenHistory}
                 onSave=${onSaveFromHistory}
+                onCompare=${onCompare}
                 showRemove=${false}
                 showEdit=${false}
                 showSave=${true}
+                showCompare=${true}
+                isCompared=${isCompared(item)}
                 openLabel="Open Article"
               />
             `)}
@@ -611,6 +729,87 @@ export default function Dashboard({ setPage, user }) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      `}
+
+      ${selectedComparison && html`
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick=${closeComparison}
+        >
+          <div
+            className="w-full max-w-6xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-xl max-h-[90vh] overflow-hidden"
+            onClick=${(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Compare Articles
+              </h3>
+
+              <button
+                type="button"
+                onClick=${closeComparison}
+                className="text-sm text-slate-600 hover:underline dark:text-slate-300"
+              >
+                Close
+              </button>
+            </div>
+
+            ${comparisonLoading
+              ? html`
+                  <div className="px-6 py-6 text-sm text-slate-500 dark:text-slate-400">
+                    Loading comparison details...
+                  </div>
+                `
+              : comparisonError
+                ? html`
+                    <div className="px-6 py-6 text-sm text-red-700 dark:text-red-300">
+                      ${comparisonError}
+                    </div>
+                  `
+                : html`
+                    <div className="grid gap-0 md:grid-cols-2">
+                      ${comparisonDetails.map((item) => html`
+                        <div className="border-r last:border-r-0 border-slate-200 dark:border-slate-700 px-6 py-5 space-y-4 overflow-y-auto max-h-[75vh]">
+                          <div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              ${item.domain} • ${item.date}
+                            </div>
+                            <h4 className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100 break-words">
+                              ${item.title}
+                            </h4>
+                          </div>
+
+                          <div className="grid gap-2 text-sm text-slate-700 dark:text-slate-300">
+                            <div><span className="font-medium">Score:</span> ${item.score}/100</div>
+                            <div><span className="font-medium">Summary:</span> ${item.note || "N/A"}</div>
+                            ${item.tag ? html`<div><span className="font-medium">Tag:</span> ${item.tag}</div>` : null}
+                            ${item.confidence != null ? html`<div><span className="font-medium">Confidence:</span> ${item.confidence}%</div>` : null}
+                            ${item.author ? html`<div><span className="font-medium">Author:</span> ${item.author}</div>` : null}
+                            ${item.publishDate ? html`<div><span className="font-medium">Published:</span> ${item.publishDate}</div>` : null}
+                          </div>
+
+                          <div className="border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-4">
+                            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                              Text Preview
+                            </div>
+                            <div className="text-sm leading-6 text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                              ${(item.textContent || "No saved article text available.").slice(0, 2500)}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick=${() => window.open(item.url, "_blank", "noopener,noreferrer")}
+                            className="px-3 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 transition"
+                          >
+                            Open Original
+                          </button>
+                        </div>
+                      `)}
+                    </div>
+                  `}
           </div>
         </div>
       `}

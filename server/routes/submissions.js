@@ -129,6 +129,7 @@ router.get("/history", authMiddleware, async (req, res) => {
       SELECT s.id AS submission_id,
              s.original_url,
              s.date_submitted,
+             a.title,
              cs.overall_score,
              cs.verdict,
              cs.confidence_level
@@ -270,6 +271,53 @@ router.get("/saved/:submissionId", authMiddleware, async(req, res) => {
   }
 })
 
+router.get("/submission/:submissionId", authMiddleware, async (req, res) => {
+  const { submissionId } = req.params;
+
+  try {
+    const [check] = await pool.query(
+      `SELECT id FROM submissions WHERE id = ? AND user_id = ?`,
+      [submissionId, req.user.id]
+    );
+
+    if (check.length === 0) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT s.id AS submission_id,
+             s.original_url,
+             s.date_submitted,
+             a.title,
+             a.author_name,
+             a.publish_date,
+             a.text_content,
+             sa.tags,
+             cs.overall_score,
+             cs.verdict,
+             cs.confidence_level
+      FROM submissions s
+      LEFT JOIN articles a ON a.submission_id = s.id
+      LEFT JOIN credibility_scores cs ON cs.article_id = a.id
+      LEFT JOIN saved_articles sa
+        ON sa.submission_id = s.id AND sa.user_id = ?
+      WHERE s.id = ?
+      `,
+      [req.user.id, submissionId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Submission not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("GET /submission/:submissionId error:", err);
+    res.status(500).json({ error: "Failed to fetch submission details" });
+  }
+});
+
 // Get saved
 router.get("/saved", authMiddleware, async (req, res) => {
   try {
@@ -278,6 +326,7 @@ router.get("/saved", authMiddleware, async (req, res) => {
       SELECT s.id AS submission_id,
              s.original_url,
              s.date_submitted,
+             a.title,
              a.text_content,
              sa.tags,
              cs.overall_score,
