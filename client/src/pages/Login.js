@@ -29,7 +29,7 @@ export default function Login({ setPage, onLoggedIn }) {
       setError("Email and password are required.");
       return;
     }
-    const emailRegex = /[a-zA-Z0-9]@[a-zA-Z0-9]\.[a-z]/;
+    const emailRegex = /[a-z0-9]@[a-z0-9]\.[a-z]/;
     if(trimmedEmail.test(emailRegex) === false) {
       setError("Please enter a valid email address.");
       return;
