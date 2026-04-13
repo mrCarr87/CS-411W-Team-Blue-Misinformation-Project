@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import authRoutes from "./routes/auth.js";
 import { registerDbApi } from "./routes/db_api.js";
+import sendEmail from "./scripts/email.js";
 import submissionRoutes from "./routes/submissions.js";
 import cors from "cors"
 
@@ -61,6 +62,7 @@ app.get("/analyze", analyzeRoute)
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
   console.log(process.env.HF_TOKEN)
+  console.log(process.env.SMTP_HOST)
   console.log("Token loaded:", process.env.HF_TOKEN ? "YES ✓" : "NO ✗ — check your .env file")
 })
 
