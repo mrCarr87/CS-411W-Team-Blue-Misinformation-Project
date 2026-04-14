@@ -5,55 +5,67 @@ import { requireAdmin } from "../middleware/dbMiddleware.js";
 // Get sources
 export function registerDbApi(app) {
   app.get("/sources", async (req, res) => {
-    try {
-      const { minScore } = req.query;
+  try {
+    const { minScore } = req.query;
 
-      const query = minScore
-        ? `SELECT id, domain_name, credibility_score, last_updated, active
-           FROM sources
-           WHERE credibility_score >= ?
-           ORDER BY credibility_score DESC`
-        : `SELECT id, domain_name, credibility_score, last_updated, active
-           FROM sources
-           ORDER BY domain_name`;
+    let query = `
+      SELECT 
+        s.id,
+        s.domain_name,
+        s.credibility_score,
+        s.last_updated,
+        s.active,
+        COUNT(cs.id) AS article_count
+      FROM sources s
+      LEFT JOIN articles a ON a.source_id = s.id
+      LEFT JOIN credibility_scores cs ON cs.article_id = a.id
+    `;
 
-      const params = minScore ? [Number(minScore)] : [];
+    const params = [];
 
-      const [rows] = await pool.query(query, params);
-      res.json(rows);
-    } catch (err) {
-      console.error("GET /sources error:", err);
-      res.status(500).json({ error: "Failed to fetch sources" });
+    if (minScore) {
+      query += ` WHERE s.credibility_score >= ?`;
+      params.push(Number(minScore));
     }
-  });
+
+    query += `
+      GROUP BY s.id
+      ORDER BY article_count DESC
+    `;
+
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+
+  } catch (err) {
+    console.error("GET /sources error:", err);
+    res.status(500).json({ error: "Failed to fetch sources" });
+  }
+});
 
 
-  // Add or update source (admin)
+  // Add or update sources only (admin)
   app.post("/sources", authMiddleware, requireAdmin, async (req, res) => {
+  const { domain_name, active } = req.body;
 
-    const { domain_name, credibility_score, active } = req.body;
+  if (!domain_name) {
+    return res.status(400).json({ error: "domain_name required" });
+  }
 
-    if (!domain_name) {
-      return res.status(400).json({ error: "domain_name required" });
-    }
+  try {
+    await pool.query(
+      `INSERT INTO sources (domain_name, last_updated, active)
+       VALUES (?, NOW(), ?)
+       ON DUPLICATE KEY UPDATE
+         last_updated = NOW(),
+         active = VALUES(active)`,
+      [domain_name, active ?? 1]
+    );
 
-    try {
-      await pool.query(
-        `INSERT INTO sources (domain_name, credibility_score, last_updated, active)
-         VALUES (?, ?, NOW(), ?)
-         ON DUPLICATE KEY UPDATE
-           credibility_score = VALUES(credibility_score),
-           last_updated = NOW(),
-           active = VALUES(active)`,
-        [domain_name, credibility_score ?? null, active ?? 1]
-      );
-
-      res.json({ ok: true });
-    } catch (err) {
-      console.error("POST /sources error:", err);
-      res.status(500).json({ error: "Failed to update source" });
-    }
-  });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update source" });
+  }
+});
 
 
   // // Update trusted sources
