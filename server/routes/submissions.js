@@ -51,8 +51,8 @@ router.post("/submit", authMiddleware, async (req, res) => {
       sourceId = sourceRows[0].id;
     } else {
       const [insertSource] = await conn.query(
-        `INSERT INTO sources (domain_name)
-         VALUES (?)`,
+        `INSERT INTO sources (domain_name, credibility_score, last_updated)
+        VALUES (?, 0, NOW())`,
         [domain]
       );
       sourceId = insertSource.insertId;
@@ -94,6 +94,35 @@ router.post("/submit", authMiddleware, async (req, res) => {
           : "Low Credibility",
         fullResult.reasons.join(" ")
       ]
+    );
+
+  // Update source score
+  const [agg] = await conn.query(
+    `SELECT 
+        AVG(cs.overall_score) AS avg_score,
+        COUNT(cs.id) AS count
+    FROM credibility_scores cs
+    JOIN articles a ON cs.article_id = a.id
+    WHERE a.source_id = ?`,
+    [sourceId]
+  );
+
+  const avgScore = agg[0].avg_score || 0;
+  const count = agg[0].count || 0;
+
+  await conn.query(
+    `UPDATE sources
+    SET credibility_score = ?, last_updated = NOW()
+    WHERE id = ?`,
+    [avgScore, sourceId]
+  );
+
+    // Update status of submission
+    await conn.query(
+      `UPDATE submissions
+      SET status = "decided"
+      WHERE id = ?`,
+      [submissionId]
     );
 
     await conn.commit();

@@ -37,7 +37,6 @@ export default function Admin({ setPage, user }) {
 
   const [editingId, setEditingId] = useState(null);
   const [editDomainName, setEditDomainName] = useState("");
-  const [editCredibilityScore, setEditCredibilityScore] = useState("");
 
   async function loadSources() {
     try {
@@ -76,7 +75,7 @@ export default function Admin({ setPage, user }) {
       setError("Domain name is required.");
       return;
     }
-
+/*
     const parsedScore =
       credibilityScore === "" ? null : Number(credibilityScore);
 
@@ -87,14 +86,13 @@ export default function Admin({ setPage, user }) {
       setError("Credibility score must be a number between 0 and 100.");
       return;
     }
-
+*/
     setSaving(true);
     try {
       await apiFetch("/sources", {
         method: "POST",
         body: JSON.stringify({
           domain_name: trimmedDomain,
-          credibility_score: parsedScore
         })
       });
 
@@ -111,9 +109,11 @@ export default function Admin({ setPage, user }) {
   function startInlineEdit(source) {
     setEditingId(source.id);
     setEditDomainName(source.domain_name || "");
+    /*
     setEditCredibilityScore(
       source.credibility_score != null ? String(source.credibility_score) : ""
     );
+    */
     setMessage(null);
     setError(null);
   }
@@ -121,7 +121,7 @@ export default function Admin({ setPage, user }) {
   function cancelInlineEdit() {
     setEditingId(null);
     setEditDomainName("");
-    setEditCredibilityScore("");
+    // setEditCredibilityScore("");
   }
 
   async function saveInlineEdit(source) {
@@ -131,7 +131,7 @@ export default function Admin({ setPage, user }) {
       setError("Domain name is required.");
       return;
     }
-
+    /*
     const parsedScore =
       editCredibilityScore === "" ? null : Number(editCredibilityScore);
 
@@ -142,7 +142,7 @@ export default function Admin({ setPage, user }) {
       setError("Credibility score must be a number between 0 and 100.");
       return;
     }
-
+  */
     try {
       setRowSaving(true);
       setError(null);
@@ -152,7 +152,7 @@ export default function Admin({ setPage, user }) {
         method: "POST",
         body: JSON.stringify({
           domain_name: trimmedDomain,
-          credibility_score: parsedScore,
+          // credibility_score: parsedScore,
           active: Number(source.active) === 1 ? 1 : 0
         })
       });
@@ -281,25 +281,7 @@ export default function Admin({ setPage, user }) {
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Credibility Score
-            </label>
-            <div className=${"mt-1 flex rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 shadow-sm " + theme.ring}>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value=${credibilityScore}
-                onInput=${(e) => setCredibilityScore(e.target.value)}
-                placeholder="75"
-                className="w-full bg-transparent px-3 py-3 text-sm text-slate-900 dark:text-slate-100 outline-none"
-              />
-            </div>
-          </div>
-
+          
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
@@ -383,19 +365,13 @@ export default function Admin({ setPage, user }) {
                       <td className="py-3 pr-4">
                         ${isEditing
                           ? html`
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                value=${editCredibilityScore}
-                                onInput=${(e) => setEditCredibilityScore(e.target.value)}
-                                className="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                              />
+                              <span className="text-xs text-slate-400 italic">
+                                Auto-calculated
+                              </span>
                             `
                           : html`
                               <span className=${isActive ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"}>
-                                ${source.credibility_score != null ? source.credibility_score : "N/A"}
+                                ${source.credibility_score != null ? Math.round(source.credibility_score) : "N/A"}
                               </span>
                             `}
                       </td>
