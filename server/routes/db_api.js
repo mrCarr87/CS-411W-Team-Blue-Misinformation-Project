@@ -15,7 +15,8 @@ export function registerDbApi(app) {
         s.credibility_score,
         s.last_updated,
         s.active,
-        COUNT(cs.id) AS article_count
+        COUNT(DISTINCT a.id) AS article_count,
+        ROUND(AVG(cs.overall_score), 1) AS avg_score
       FROM sources s
       LEFT JOIN articles a ON a.source_id = s.id
       LEFT JOIN credibility_scores cs ON cs.article_id = a.id

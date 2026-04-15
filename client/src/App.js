@@ -4,14 +4,30 @@ import Dashboard from "./pages/Dashboard.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
 import Admin from "./pages/Admin.js";
+import ForgotPassword from "./pages/ForgotPassword.js";
+import ResetPassword from "./pages/ResetPassword.js";
 
 import { apiFetch } from "./ui/api.js";
 import { getToken, clearToken } from "./ui/auth.js";
 
 const html = window.htm.bind(window.React.createElement);
 
+function getInitialPage() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const pageParam = params.get("page");
+
+    if (pageParam === "reset-password") return "reset-password";
+    if (pageParam === "forgot-password") return "forgot-password";
+  } catch (err) {
+    // ignore query parsing issues
+  }
+
+  return "analyze";
+}
+
 export default function App() {
-  const [page, setPage] = window.React.useState("analyze");
+  const [page, setPage] = window.React.useState(getInitialPage());
   const [user, setUser] = window.React.useState(null);
   const [booting, setBooting] = window.React.useState(true);
 
@@ -85,7 +101,11 @@ export default function App() {
             ? html`<${Login} setPage=${setPage} onLoggedIn=${setUser} />`
             : page === "register"
               ? html`<${Register} setPage=${setPage} />`
-              : html`<${Analyze} />`;
+              : page === "forgot-password"
+                ? html`<${ForgotPassword} setPage=${setPage} />`
+                : page === "reset-password"
+                  ? html`<${ResetPassword} setPage=${setPage} />`
+                  : html`<${Analyze} />`;
 
   return html`
     <div className="min-h-screen">

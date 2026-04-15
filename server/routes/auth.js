@@ -115,7 +115,8 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   }
 
   try { 
-    const user = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await pool.execute("SELECT id FROM users WHERE email = ?", [normalizedEmail]);
 
     const fakeToken = generateResetToken();
     hashToken(fakeToken); // Simulate hashing to equalize timing
@@ -134,10 +135,10 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
       [hashedToken, expiresAt, user[0][0].id, null, new Date(Date.now())]
     );
 
-    const resetUrl = `https://mrcarr87.github.io/CS-411W-Team-Blue-Misinformation-Project/reset-password?token=${rawToken}`;
+    const resetUrl = `https://mrcarr87.github.io/CS-411W-Team-Blue-Misinformation-Project/?page=reset-password&token=${encodeURIComponent(rawToken)}`;
 
     await sendEmail({
-      to: email,
+      to: normalizedEmail,
       subject: "Password Reset Request",
       text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
       html: `<p>You requested a password reset. Click the link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
@@ -174,13 +175,13 @@ router.post("/reset-password", async (req, res) => {
     const passWordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
     await pool.execute(
-      "UPDATE users u JOIN password_reset_tokens t ON u.id = t.user_id SET u.password_hash = ?, t.used_at = ? WHERE t.id = ?",
-      [passWordHash, new Date(Date.now()), rows[0].id]
+      "UPDATE users SET password_hash = ? WHERE id = ?",
+      [passWordHash, rows[0].user_id]
     );
 
     await pool.execute(
       "UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ?",
-      [new Date(Date.now()), rows[0].id]
+      [new Date(Date.now()), rows[0].user_id]
     );
 
     return res.status(200).json({ message: "Password reset successful." });

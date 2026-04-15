@@ -33,7 +33,7 @@ export default function Admin({ setPage, user }) {
   const [message, setMessage] = useState(null);
 
   const [domainName, setDomainName] = useState("");
-  const [credibilityScore, setCredibilityScore] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
   const [editDomainName, setEditDomainName] = useState("");
@@ -59,7 +59,6 @@ export default function Admin({ setPage, user }) {
 
   function handleClear() {
     setDomainName("");
-    setCredibilityScore("");
     setMessage(null);
     setError(null);
   }
@@ -75,18 +74,7 @@ export default function Admin({ setPage, user }) {
       setError("Domain name is required.");
       return;
     }
-/*
-    const parsedScore =
-      credibilityScore === "" ? null : Number(credibilityScore);
 
-    if (
-      parsedScore != null &&
-      (Number.isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100)
-    ) {
-      setError("Credibility score must be a number between 0 and 100.");
-      return;
-    }
-*/
     setSaving(true);
     try {
       await apiFetch("/sources", {
@@ -109,11 +97,6 @@ export default function Admin({ setPage, user }) {
   function startInlineEdit(source) {
     setEditingId(source.id);
     setEditDomainName(source.domain_name || "");
-    /*
-    setEditCredibilityScore(
-      source.credibility_score != null ? String(source.credibility_score) : ""
-    );
-    */
     setMessage(null);
     setError(null);
   }
@@ -121,7 +104,6 @@ export default function Admin({ setPage, user }) {
   function cancelInlineEdit() {
     setEditingId(null);
     setEditDomainName("");
-    // setEditCredibilityScore("");
   }
 
   async function saveInlineEdit(source) {
@@ -131,18 +113,7 @@ export default function Admin({ setPage, user }) {
       setError("Domain name is required.");
       return;
     }
-    /*
-    const parsedScore =
-      editCredibilityScore === "" ? null : Number(editCredibilityScore);
 
-    if (
-      parsedScore != null &&
-      (Number.isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100)
-    ) {
-      setError("Credibility score must be a number between 0 and 100.");
-      return;
-    }
-  */
     try {
       setRowSaving(true);
       setError(null);
@@ -152,7 +123,6 @@ export default function Admin({ setPage, user }) {
         method: "POST",
         body: JSON.stringify({
           domain_name: trimmedDomain,
-          // credibility_score: parsedScore,
           active: Number(source.active) === 1 ? 1 : 0
         })
       });
@@ -199,7 +169,6 @@ export default function Admin({ setPage, user }) {
         method: "POST",
         body: JSON.stringify({
           domain_name: source.domain_name,
-          credibility_score: source.credibility_score,
           active: 1,
         })
       });
@@ -209,6 +178,10 @@ export default function Admin({ setPage, user }) {
     } catch (err) {
       setError(err.message || "Failed to restore source.");
     }
+  }
+
+  function toggleExpanded(sourceId) {
+    setExpandedId(expandedId === sourceId ? null : sourceId);
   }
 
   if (user?.role !== "admin") {
@@ -334,118 +307,163 @@ export default function Admin({ setPage, user }) {
                 ${sources.map((source) => {
                   const isActive = Number(source.active) === 1;
                   const isEditing = editingId === source.id;
+                  const isExpanded = expandedId === source.id;
 
                   return html`
-                    <tr
-                      key=${source.id}
-                      className=${[
-                        "border-b dark:border-slate-800 transition-colors",
-                        isActive
-                          ? "border-slate-100 bg-transparent"
-                          : "border-slate-200 bg-slate-50/70 dark:bg-slate-800/25"
-                      ].join(" ")}
-                    >
-                      <td className="py-3 pr-4">
-                        ${isEditing
-                          ? html`
-                              <input
-                                type="text"
-                                value=${editDomainName}
-                                onInput=${(e) => setEditDomainName(e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                              />
-                            `
-                          : html`
-                              <span className=${isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}>
-                                ${source.domain_name}
-                              </span>
-                            `}
-                      </td>
-
-                      <td className="py-3 pr-4">
-                        ${isEditing
-                          ? html`
-                              <span className="text-xs text-slate-400 italic">
-                                Auto-calculated
-                              </span>
-                            `
-                          : html`
-                              <span className=${isActive ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"}>
-                                ${source.credibility_score != null ? Math.round(source.credibility_score) : "N/A"}
-                              </span>
-                            `}
-                      </td>
-
-                      <td className="py-3 pr-4">
-                        <span className=${"inline-flex items-center border px-2.5 py-1 text-xs font-medium " + statusBadge(isActive)}>
-                          ${isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-
-                      <td className="py-3 pr-4">
-                        <span className=${isActive ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"}>
-                          ${source.last_updated ? formatDate(source.last_updated) : "N/A"}
-                        </span>
-                      </td>
-
-                      <td className="py-3">
-                        <div className="flex items-center gap-3 flex-wrap">
+                    <${window.React.Fragment} key=${source.id}>
+                      <tr
+                        className=${[
+                          "border-b dark:border-slate-800 transition-colors",
+                          isActive
+                            ? "border-slate-100 bg-transparent"
+                            : "border-slate-200 bg-slate-50/70 dark:bg-slate-800/25"
+                        ].join(" ")}
+                      >
+                        <td className="py-3 pr-4">
                           ${isEditing
                             ? html`
-                                <button
-                                  type="button"
-                                  onClick=${() => saveInlineEdit(source)}
-                                  disabled=${rowSaving}
-                                  className=${[
-                                    "text-sm font-medium",
-                                    rowSaving
-                                      ? "text-slate-400 cursor-not-allowed"
-                                      : "text-emerald-700 hover:underline dark:text-emerald-400"
-                                  ].join(" ")}
-                                >
-                                  ${rowSaving ? "Saving..." : "Save"}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick=${cancelInlineEdit}
-                                  className="text-sm text-slate-700 hover:underline dark:text-slate-300"
-                                >
-                                  Cancel
-                                </button>
+                                <input
+                                  type="text"
+                                  value=${editDomainName}
+                                  onInput=${(e) => setEditDomainName(e.target.value)}
+                                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                />
                               `
                             : html`
-                                <button
-                                  type="button"
-                                  onClick=${() => startInlineEdit(source)}
-                                  className="text-sm text-slate-700 hover:underline dark:text-slate-300"
-                                >
-                                  Edit
-                                </button>
-
-                                ${isActive
-                                  ? html`
-                                      <button
-                                        type="button"
-                                        onClick=${() => handleDelete(source)}
-                                        className="text-sm text-red-600 hover:underline dark:text-red-400"
-                                      >
-                                        Delete
-                                      </button>
-                                    `
-                                  : html`
-                                      <button
-                                        type="button"
-                                        onClick=${() => handleRestore(source)}
-                                        className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
-                                      >
-                                        Restore
-                                      </button>
-                                    `}
+                                <span className=${isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}>
+                                  ${source.domain_name}
+                                </span>
                               `}
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+
+                        <td className="py-3 pr-4">
+                          ${isEditing
+                            ? html`
+                                <span className="text-xs text-slate-400 italic">
+                                  Auto-calculated
+                                </span>
+                              `
+                            : html`
+                                <span className=${isActive ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"}>
+                                  ${source.credibility_score != null ? Math.round(source.credibility_score) : "N/A"}
+                                </span>
+                              `}
+                        </td>
+
+                        <td className="py-3 pr-4">
+                          <span className=${"inline-flex items-center border px-2.5 py-1 text-xs font-medium " + statusBadge(isActive)}>
+                            ${isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+
+                        <td className="py-3 pr-4">
+                          <span className=${isActive ? "text-slate-600 dark:text-slate-300" : "text-slate-500 dark:text-slate-400"}>
+                            ${source.last_updated ? formatDate(source.last_updated) : "N/A"}
+                          </span>
+                        </td>
+
+                        <td className="py-3">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                              type="button"
+                              onClick=${() => toggleExpanded(source.id)}
+                              className="text-sm text-sky-700 hover:underline dark:text-sky-400"
+                            >
+                              ${isExpanded ? "Hide Details" : "Show Details"}
+                            </button>
+
+                            ${isEditing
+                              ? html`
+                                  <button
+                                    type="button"
+                                    onClick=${() => saveInlineEdit(source)}
+                                    disabled=${rowSaving}
+                                    className=${[
+                                      "text-sm font-medium",
+                                      rowSaving
+                                        ? "text-slate-400 cursor-not-allowed"
+                                        : "text-emerald-700 hover:underline dark:text-emerald-400"
+                                    ].join(" ")}
+                                  >
+                                    ${rowSaving ? "Saving..." : "Save"}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick=${cancelInlineEdit}
+                                    className="text-sm text-slate-700 hover:underline dark:text-slate-300"
+                                  >
+                                    Cancel
+                                  </button>
+                                `
+                              : html`
+                                  <button
+                                    type="button"
+                                    onClick=${() => startInlineEdit(source)}
+                                    className="text-sm text-slate-700 hover:underline dark:text-slate-300"
+                                  >
+                                    Edit
+                                  </button>
+
+                                  ${isActive
+                                    ? html`
+                                        <button
+                                          type="button"
+                                          onClick=${() => handleDelete(source)}
+                                          className="text-sm text-red-600 hover:underline dark:text-red-400"
+                                        >
+                                          Delete
+                                        </button>
+                                      `
+                                    : html`
+                                        <button
+                                          type="button"
+                                          onClick=${() => handleRestore(source)}
+                                          className="text-sm text-emerald-700 hover:underline dark:text-emerald-400"
+                                        >
+                                          Restore
+                                        </button>
+                                      `}
+                                `}
+                          </div>
+                        </td>
+                      </tr>
+
+                      ${isExpanded && html`
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <td colSpan="5" className="px-4 py-4 bg-slate-50/70 dark:bg-slate-900/40">
+                            <div className="grid gap-4 sm:grid-cols-3">
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  Number of Articles
+                                </div>
+                                <div className="mt-1 text-sm text-slate-900 dark:text-slate-100">
+                                  ${source.article_count ?? 0}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  Average Score
+                                </div>
+                                <div className="mt-1 text-sm text-slate-900 dark:text-slate-100">
+                                  ${source.avg_score != null ? source.avg_score : "N/A"}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  Last Updated
+                                </div>
+                                <div className="mt-1 text-sm text-slate-900 dark:text-slate-100">
+                                  ${source.last_updated ? formatDate(source.last_updated) : "N/A"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      `}
+                    <//>
                   `;
                 })}
               </tbody>
