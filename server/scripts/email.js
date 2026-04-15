@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-
+import { setDefaultResultOrder } from "dns";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,11 +11,13 @@ dotenv.config({
   path: path.resolve(__dirname, "../.env"),
 });
 
-console.log("loaded: " + process.env.SMTP_HOST)
+
+setDefaultResultOrder("ipv4first"); 
 const transporter = nodemailer.createTransport({ 
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,
     secure: Number(process.env.SMTP_PORT) === 465, 
+    family: 4,
     auth: {
         user: process.env.SMTP_USER, 
         pass: process.env.SMTP_PASS,
