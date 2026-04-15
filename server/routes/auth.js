@@ -12,6 +12,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_ROUNDS = 12;
 
+router.set('trust proxy', 1);
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // limit each IP to 5 requests per windowMs

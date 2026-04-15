@@ -36,7 +36,7 @@ app.use(cors({
 
 app.options(/.*/, cors()); // explicitly handle preflight
 
-
+app.set('trust proxy', 1)
 app.use(express.json());
 app.use("/auth", authRoutes); // Account Creation/Authentication
 app.use("/api", submissionRoutes); // Store all sumissions into db
