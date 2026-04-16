@@ -61,8 +61,6 @@ app.get("/analyze", analyzeRoute)
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
-  console.log(process.env.HF_TOKEN)
-  console.log(process.env.SMTP_HOST)
   console.log("Token loaded:", process.env.HF_TOKEN ? "YES ✓" : "NO ✗ — check your .env file")
 })
 
