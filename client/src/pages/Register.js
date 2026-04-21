@@ -28,11 +28,17 @@ export default function Register({ setPage }) {
     setSuccess(null);
 
     const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!trimmedEmail || !password || !confirm) {
-      setError("Email, password, and confirm password are required.");
-      return;
-    }
+   if (!trimmedEmail || !password || !confirm) {
+  setError("Email, password, and confirm password are required.");
+  return;
+}
+
+if (!emailRegex.test(trimmedEmail)) {
+  setError("Please enter a valid email address.");
+  return;
+}
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");

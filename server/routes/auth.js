@@ -12,6 +12,16 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_ROUNDS = 12;
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validateEmail(email) {
+  if (typeof email !== "string") return false;
+  if (!email || email.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -32,11 +42,16 @@ function generateResetToken() {
 // Creates a new user
 router.post("/register", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
-    }
+    return res.status(400).json({ error: "Email and password are required." });
+  }
+
+if (!validateEmail(email)) {
+  return res.status(400).json({ error: "Please enter a valid email address." });
+}
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -66,11 +81,16 @@ router.post("/login", async (req, res) => {
   try {
 
     
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
-    }
+    return res.status(400).json({ error: "Email and password are required." });
+  }
+
+if (!validateEmail(email)) {
+  return res.status(400).json({ error: "Please enter a valid email address." });
+}
 
     const [rows] = await pool.execute(
       "SELECT id, email, password_hash, role FROM users WHERE email = ?",

@@ -24,11 +24,17 @@ export default function Login({ setPage, onLoggedIn }) {
     setError(null);
 
     const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!trimmedEmail || !password) {
-      setError("Email and password are required.");
-      return;
-    }
+   if (!trimmedEmail || !password) {
+  setError("Email and password are required.");
+  return;
+}
+
+if (!emailRegex.test(trimmedEmail)) {
+  setError("Please enter a valid email address.");
+  return;
+}
 
     setLoading(true);
     try {
